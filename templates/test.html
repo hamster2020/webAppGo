@@ -1,0 +1,12 @@
+{{define "test"}}
+{{template "header" .}}
+{{template "navbar" .}}
+<div class="jumbotron">
+	<h1 class="text-center">{{.Title}}</h1>
+</div>
+<div class="container-fluid">
+	<p>[<a href="/edit/{{.Title | urlize}}">edit</a>]</p>
+	<div>{{printf "%s" .Body}}</div>
+</div>
+{{template "footer" .}}
+{{end}}

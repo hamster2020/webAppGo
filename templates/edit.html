@@ -1,0 +1,15 @@
+{{define "edit"}}
+{{template "header" .}}
+{{template "navbar" .}}
+<div class="jumbotron">
+	<h1 class="text-center">Editing {{.Title}}</h1>
+</div>
+
+<div>
+	<form action="/save/{{.Title | urlize }}" method="POST">
+		<div><textarea class="form-control" name="body" cols="80" rows="25">{{printf "%s" .Body}}</textarea></div>
+		<div><input class="btn btn-info" type="submit" value="Save"></div>
+	</form>
+</div>
+{{template "footer" .}}
+{{end}}
