@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -28,6 +29,13 @@ type User struct {
 	Email    string            `valid:"req,email"`
 	Password string            `valid:"req"`
 	Errors   map[string]string `valid:"-"`
+}
+
+// Session is a type for storing User Sessions
+type Session struct {
+	SessionID string
+	UserID    string
+	Time      string
 }
 
 // SaveCache is for saving webpages to a sqlite DB first, if fails, then attempts to load a cached file
@@ -76,14 +84,26 @@ func loadSource(title string) (*Page, error) {
 	return &Page{Title: name, Body: body}, nil
 }
 
-// saveData saves a User struct to the cache/db.sqlite3 db
-func saveData(u *User) error {
+// saveUserData saves a User struct to the cache/db.sqlite3 db
+func saveUserData(u *User) error {
 	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
 	defer db.Close()
 	db.Exec("create table if not exists users (uuid text not null unique, firstname text not null, lastname text not null, username text not null unique, email text not null, password text not null, primary key(uuid))")
 	tx, _ := db.Begin()
 	stmt, _ := tx.Prepare("insert into users (uuid, firstname, lastname, username, email, password) values (?, ?, ?, ?, ?, ?)")
 	_, err := stmt.Exec(u.UUID, u.Fname, u.Lname, u.Username, u.Email, u.Password)
+	tx.Commit()
+	return err
+}
+
+// saveSession saves a user session to the cache/db.sqlite3 db
+func saveSession(s *Session) error {
+	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	defer db.Close()
+	db.Exec("create table if not exists sessions (sessionid text not null unique, userid text not null, timestamp text not null, primary key(sessionid))")
+	tx, _ := db.Begin()
+	stmt, _ := tx.Prepare("insert into sessions (sessionid, userid, timestamp) values (?, ?, ?)")
+	_, err := stmt.Exec(s.SessionID, s.UserID, s.Time)
 	tx.Commit()
 	return err
 }
@@ -104,6 +124,55 @@ func pageExists(title string) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+func getSessionFromSessionID(sessionid string) *Session {
+	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	defer db.Close()
+	var sid, uid, time string
+	q, err := db.Query("select * from sessions where sessionid = '" + sessionid + "'")
+	if err != nil {
+		return &Session{}
+	}
+	for q.Next() {
+		q.Scan(&sid, &uid, &time)
+	}
+	return &Session{
+		SessionID: sid,
+		UserID:    uid,
+		Time:      time,
+	}
+}
+
+// clearSession removes the session cookie
+func clearSession(res http.ResponseWriter, sessionid string) error {
+	clearCookie(res, "session")
+	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	defer db.Close()
+	db.Exec("create table if not exists sessions (sessionid text not null unique, userid text not null, timestamp text not null, primary key(sessionid))")
+	tx, _ := db.Begin()
+	stmt, _ := tx.Prepare("delete from sessions where sessionid=?")
+	_, err := stmt.Exec(sessionid)
+	tx.Commit()
+	return err
+}
+
+// used to check if a user/password combination exist in the db
+func sessionExists(sessionid string) (bool, string) {
+	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	defer db.Close()
+	var sid, uid, time string
+	q, err := db.Query("select * from sessions where sessionid = '" + sessionid + "'")
+	if err != nil {
+		return false, ""
+	}
+	for q.Next() {
+		q.Scan(&sid, &uid, &time)
+	}
+	if sid != "" {
+		return true, sid
+	}
+	return false, ""
 }
 
 func getUserFromUUID(uuid string) *User {
@@ -131,17 +200,17 @@ func getUserFromUUID(uuid string) *User {
 func userExists(u *User) (bool, string) {
 	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
 	defer db.Close()
-	var ps, uu string
+	var password, userID string
 	q, err := db.Query("select uuid, password from users where username = '" + u.Username + "'")
 	if err != nil {
 		return false, ""
 	}
 	for q.Next() {
-		q.Scan(&uu, &ps)
+		q.Scan(&userID, &password)
 	}
-	pw := bcrypt.CompareHashAndPassword([]byte(ps), []byte(u.Password))
-	if uu != "" && pw == nil {
-		return true, uu
+	pw := bcrypt.CompareHashAndPassword([]byte(password), []byte(u.Password))
+	if userID != "" && pw == nil {
+		return true, userID
 	}
 	return false, ""
 }

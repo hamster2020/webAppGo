@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 var validPath = regexp.MustCompile(`^/(edit|save|view)/([:\w+:]+)$`)
@@ -49,7 +51,7 @@ func edit(res http.ResponseWriter, req *http.Request, title string) {
 	render(res, "edit", p)
 }
 
-// save is a function handler for allowign the user to make HTTP post requests to the server
+// save is a function handler for making HTTP post requests of Pages to the server
 func save(res http.ResponseWriter, req *http.Request, title string) {
 	title = strings.Replace(strings.Title(title), " ", "_", -1)
 	body := []byte(req.FormValue("body"))
@@ -102,8 +104,8 @@ func upload(res http.ResponseWriter, req *http.Request) {
 
 // indexPage is a function handler to return to the client the index.html page
 func indexPage(res http.ResponseWriter, req *http.Request) {
-	uuid := getUUID(req)
-	if uuid != "" {
+	sessionID := getSessionIDFromCookie(req)
+	if foundSessionID, _ := sessionExists(sessionID); foundSessionID == true {
 		http.Redirect(res, req, "/example", 302)
 		return
 	}
@@ -127,9 +129,14 @@ func login(res http.ResponseWriter, req *http.Request) {
 	}
 	redirect := "/"
 	if u.Username != "" && u.Password != "" {
-		b, uuid := userExists(u)
+		b, userID := userExists(u)
 		if b == true {
-			setSession(&User{UUID: uuid}, res)
+			s := &Session{
+				SessionID: uuid(),
+				UserID:    userID,
+				Time:      strconv.FormatInt(time.Now().Unix(), 10),
+			}
+			setSession(s, res)
 			redirect = "/example"
 		} else {
 			setMsg(res, "msg", "Please signup or enter a valid username and password!")
@@ -142,15 +149,17 @@ func login(res http.ResponseWriter, req *http.Request) {
 
 // logout merely clears the session cookie and redirects to the index endnode
 func logout(res http.ResponseWriter, req *http.Request) {
-	clearSession(res, "session")
+	sessionID := getSessionIDFromCookie(req)
+	clearSession(res, sessionID)
 	http.Redirect(res, req, "/", 302)
 }
 
 // examplePage is a function hanlder for when the user successfully sets up a session
 func examplePage(res http.ResponseWriter, req *http.Request) {
-	uuid := getUUID(req)
-	u := getUserFromUUID(uuid)
-	if uuid != "" {
+	sessionID := getSessionIDFromCookie(req)
+	session := getSessionFromSessionID(sessionID)
+	u := getUserFromUUID(session.UserID)
+	if session.UserID != "" {
 		render(res, "internal", u)
 	} else {
 		setMsg(res, "msg", "Please login first!")
@@ -210,7 +219,7 @@ func signup(res http.ResponseWriter, req *http.Request) {
 		}
 		if result == true {
 			u.Password = encryptPass(u.Password)
-			saveData(u)
+			saveUserData(u)
 			http.Redirect(res, req, "/", 302)
 			return
 		}
@@ -264,8 +273,8 @@ func render(res http.ResponseWriter, name string, data interface{}) {
 
 func checkUUID(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		uuid := getUUID(req)
-		if uuid != "" {
+		sessionID := getSessionIDFromCookie(req)
+		if foundSessionID, _ := sessionExists(sessionID); foundSessionID == true {
 			fn(res, req)
 			return
 		}

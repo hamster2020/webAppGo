@@ -13,10 +13,11 @@ var cookieHandler = securecookie.New(
 )
 
 // setSession creates a session for a user vie secure cookies
-func setSession(u *User, res http.ResponseWriter) {
+func setSession(s *Session, res http.ResponseWriter) {
 	value := map[string]string{
-		"uuid": u.UUID,
+		"uuid": s.SessionID,
 	}
+	saveSession(s)
 	encoded, err := cookieHandler.Encode("session", value)
 	if err == nil {
 		cookie := &http.Cookie{
@@ -29,7 +30,7 @@ func setSession(u *User, res http.ResponseWriter) {
 }
 
 // getUserName extracts the username from the session cookie in the http response
-func getUUID(req *http.Request) (uuid string) {
+func getSessionIDFromCookie(req *http.Request) (uuid string) {
 	cookie, err := req.Cookie("session")
 	if err == nil {
 		cookieValue := make(map[string]string)
@@ -40,8 +41,8 @@ func getUUID(req *http.Request) (uuid string) {
 	return uuid
 }
 
-// clearSession removes the session cookie
-func clearSession(res http.ResponseWriter, name string) {
+// clearCookie removes the given cookie from the client's browser
+func clearCookie(res http.ResponseWriter, name string) {
 	cookie := &http.Cookie{
 		Name:   name,
 		Value:  "",
@@ -58,7 +59,7 @@ func getMsg(res http.ResponseWriter, req *http.Request, name string) (msg string
 		cookieValue := make(map[string]string)
 		if err = cookieHandler.Decode(name, cookie.Value, &cookieValue); err == nil {
 			msg = cookieValue[name]
-			clearSession(res, name)
+			clearCookie(res, name)
 		}
 	}
 	return msg
