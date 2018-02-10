@@ -35,8 +35,10 @@ type User struct {
 type Session struct {
 	SessionID string
 	UserID    string
-	Time      string
+	Time      int
 }
+
+var Timeout int = 30 // seconds
 
 // SaveCache is for saving webpages to a sqlite DB first, if fails, then attempts to load a cached file
 func (p Page) SaveCache() error {
@@ -100,7 +102,7 @@ func saveUserData(u *User) error {
 func saveSession(s *Session) error {
 	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
 	defer db.Close()
-	db.Exec("create table if not exists sessions (sessionid text not null unique, userid text not null, timestamp text not null, primary key(sessionid))")
+	db.Exec("create table if not exists sessions (sessionid text not null unique, userid text not null, timestamp integer not null, primary key(sessionid))")
 	tx, _ := db.Begin()
 	stmt, _ := tx.Prepare("insert into sessions (sessionid, userid, timestamp) values (?, ?, ?)")
 	_, err := stmt.Exec(s.SessionID, s.UserID, s.Time)
@@ -129,7 +131,8 @@ func pageExists(title string) (bool, error) {
 func getSessionFromSessionID(sessionid string) *Session {
 	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
 	defer db.Close()
-	var sid, uid, time string
+	var sid, uid string
+	var time int
 	q, err := db.Query("select * from sessions where sessionid = '" + sessionid + "'")
 	if err != nil {
 		return &Session{}
@@ -149,7 +152,7 @@ func clearSession(res http.ResponseWriter, sessionid string) error {
 	clearCookie(res, "session")
 	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
 	defer db.Close()
-	db.Exec("create table if not exists sessions (sessionid text not null unique, userid text not null, timestamp text not null, primary key(sessionid))")
+	db.Exec("create table if not exists sessions (sessionid text not null unique, userid text not null, timestamp integer not null, primary key(sessionid))")
 	tx, _ := db.Begin()
 	stmt, _ := tx.Prepare("delete from sessions where sessionid=?")
 	_, err := stmt.Exec(sessionid)
@@ -158,16 +161,22 @@ func clearSession(res http.ResponseWriter, sessionid string) error {
 }
 
 // used to check if a user/password combination exist in the db
-func sessionExists(sessionid string) (bool, string) {
+func sessionIsValid(res http.ResponseWriter, sessionid string) (bool, string) {
 	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
 	defer db.Close()
-	var sid, uid, time string
+	var sid, uid string
+	var tm int
 	q, err := db.Query("select * from sessions where sessionid = '" + sessionid + "'")
 	if err != nil {
 		return false, ""
 	}
 	for q.Next() {
-		q.Scan(&sid, &uid, &time)
+		q.Scan(&sid, &uid, &tm)
+	}
+	lastActivity := int(time.Now().Unix()) - tm
+	if lastActivity > Timeout {
+		clearSession(res, sessionid)
+		return false, ""
 	}
 	if sid != "" {
 		return true, sid

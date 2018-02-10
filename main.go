@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -105,7 +104,7 @@ func upload(res http.ResponseWriter, req *http.Request) {
 // indexPage is a function handler to return to the client the index.html page
 func indexPage(res http.ResponseWriter, req *http.Request) {
 	sessionID := getSessionIDFromCookie(req)
-	if foundSessionID, _ := sessionExists(sessionID); foundSessionID == true {
+	if foundSessionID, _ := sessionIsValid(res, sessionID); foundSessionID == true {
 		http.Redirect(res, req, "/example", 302)
 		return
 	}
@@ -134,7 +133,7 @@ func login(res http.ResponseWriter, req *http.Request) {
 			s := &Session{
 				SessionID: uuid(),
 				UserID:    userID,
-				Time:      strconv.FormatInt(time.Now().Unix(), 10),
+				Time:      int(time.Now().Unix()),
 			}
 			setSession(s, res)
 			redirect = "/example"
@@ -274,7 +273,7 @@ func render(res http.ResponseWriter, name string, data interface{}) {
 func checkUUID(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		sessionID := getSessionIDFromCookie(req)
-		if foundSessionID, _ := sessionExists(sessionID); foundSessionID == true {
+		if foundSessionID, _ := sessionIsValid(res, sessionID); foundSessionID == true {
 			fn(res, req)
 			return
 		}
