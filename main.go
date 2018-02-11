@@ -258,6 +258,88 @@ func signup(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// account handles both GET and POST methods, used for updating account info
+func account(res http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "GET":
+		sessionID := getSessionIDFromCookie(req)
+		session := getSessionFromSessionID(sessionID)
+		u := getUserFromUUID(session.UserID)
+		u.Errors = make(map[string]string)
+		u.Errors["lname"] = getMsg(res, req, "lname")
+		u.Errors["fname"] = getMsg(res, req, "fname")
+		u.Errors["username"] = getMsg(res, req, "username")
+		u.Errors["email"] = getMsg(res, req, "email")
+		u.Errors["password"] = getMsg(res, req, "password")
+		render(res, "account", u)
+	case "POST":
+
+		sessionID := getSessionIDFromCookie(req)
+		session := getSessionFromSessionID(sessionID)
+		u := getUserFromUUID(session.UserID)
+
+		if u.Username != req.FormValue("userName") {
+			n := checkUser(req.FormValue("userName"))
+			if n == true {
+				setMsg(res, "username", "User already exists. Please enter a unqiue user name!")
+				http.Redirect(res, req, "/account", 302)
+				return
+			}
+		}
+
+		u.Fname = req.FormValue("fName")
+		u.Lname = req.FormValue("lName")
+		u.Email = req.FormValue("email")
+		u.Username = req.FormValue("userName")
+		u.Password = req.FormValue("password")
+
+		result, err := ValidateUser(u)
+		if err != nil {
+			if strings.Contains(err.Error(), "Lname") {
+				setMsg(res, "lname", "The name, "+u.Lname+" is not valid!")
+			}
+			if strings.Contains(err.Error(), "Fname") {
+				setMsg(res, "fname", "The name, "+u.Fname+" is not valid!")
+			}
+			if strings.Contains(err.Error(), "Username") {
+				setMsg(res, "username", "The username, "+u.Username+" is not valid!")
+			}
+			if strings.Contains(err.Error(), "Email") {
+				setMsg(res, "email", "The email, "+u.Email+" is not valid!")
+			}
+			if strings.Contains(err.Error(), "Password") {
+				setMsg(res, "password", "Enter a valid passowrd!")
+			}
+		}
+
+		if req.FormValue("password") != req.FormValue("cpassword") {
+			setMsg(res, "password", "The passwords you entered do not match!")
+			http.Redirect(res, req, "/account", 302)
+			return
+		}
+
+		if result == true {
+			u.Password = encryptPass(u.Password)
+			updateUserData(u)
+			http.Redirect(res, req, "/", 302)
+			return
+		}
+		http.Redirect(res, req, "/account", 302)
+	}
+}
+
+func deleteAccount(res http.ResponseWriter, req *http.Request) {
+	sessionID := getSessionIDFromCookie(req)
+	session := getSessionFromSessionID(sessionID)
+	user := getUserFromUUID(session.UserID)
+	err := deleteUserData(user)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+	clearSession(res, sessionID)
+	http.Redirect(res, req, "/", 302)
+}
+
 func create(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
@@ -348,6 +430,8 @@ func main() {
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/example", examplePage)
 	http.HandleFunc("/signup", signup)
+	http.HandleFunc("/account", checkUUID(account))
+	http.HandleFunc("/delete", checkUUID(deleteAccount))
 	http.HandleFunc("/view/", checkUUID(checkPath(view)))
 	http.HandleFunc("/edit/", checkUUID(checkPath(edit)))
 	http.HandleFunc("/save/", checkUUID(checkPath(save)))

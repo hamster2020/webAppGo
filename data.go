@@ -53,7 +53,7 @@ type LoginDetails struct {
 // on a specific user over a given period of time
 var MaxUserAttempts = 3
 
-// MaxUserAttempts is the maximum number of failed login attempts to be made
+// MaxIPAttempts is the maximum number of failed login attempts to be made
 // from a specific ip address over a given period of time
 var MaxIPAttempts = 6
 
@@ -117,6 +117,31 @@ func saveUserData(u *User) error {
 	_, err := stmt.Exec(u.UUID, u.Fname, u.Lname, u.Username, u.Email, u.Password)
 	tx.Commit()
 	return err
+}
+
+// deletes a user record from the users db
+func deleteUserData(u *User) error {
+	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	defer db.Close()
+	db.Exec("create table if not exists users (uuid text not null unique, firstname text not null, lastname text not null, username text not null unique, email text not null, password text not null, primary key(uuid))")
+	tx, _ := db.Begin()
+	stmt, _ := tx.Prepare("delete from users where uuid=?")
+	_, err := stmt.Exec(u.UUID)
+	tx.Commit()
+	return err
+}
+
+// updateUserData saves a User struct to the cache/db.sqlite3 db
+func updateUserData(u *User) error {
+	err := deleteUserData(u)
+	if err != nil {
+		return err
+	}
+	err = saveUserData(u)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // saveSession saves a user session to the cache/db.sqlite3 db
@@ -292,6 +317,7 @@ func storeUserLogin(login *LoginDetails) error {
 func checkUserLoginAttempts(username string) bool {
 	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
 	defer db.Close()
+	db.Exec("create table if not exists logins (ip text not null, username text not null, timestamp integer not null, attempt text not null)")
 	tm := int(time.Now().Unix()) - LoginAttemptTime
 	q, err := db.Query("select username from logins where username = '" + username + "' and timestamp > '" + strconv.Itoa(tm) + "' and attempt = '0'")
 	if err != nil {
