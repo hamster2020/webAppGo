@@ -3,8 +3,10 @@ package main
 import (
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -128,6 +130,32 @@ func login(res http.ResponseWriter, req *http.Request) {
 	}
 	redirect := "/"
 	if u.Username != "" && u.Password != "" {
+
+		ok := checkUserLoginAttempts(u.Username)
+		if ok != true {
+			setMsg(res, "msg", "Too many incorrect login attempts were made for the provided username, try again in 10 minutes!")
+			http.Redirect(res, req, "/", 302)
+			return
+		}
+
+		ip, err := getIP(req)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
+
+		ok = checkIPLoginAttempts(ip)
+		if ok != true {
+			setMsg(res, "msg", "Too many incorrect login attempts were made from you, try again in 10 minutes!")
+			http.Redirect(res, req, "/", 302)
+			return
+		}
+
+		login := &LoginDetails{
+			IP:        ip,
+			UserName:  u.Username,
+			Timestamp: int(time.Now().Unix()),
+		}
+
 		b, userID := userExists(u)
 		if b == true {
 			s := &Session{
@@ -135,9 +163,13 @@ func login(res http.ResponseWriter, req *http.Request) {
 				UserID:    userID,
 				Time:      int(time.Now().Unix()),
 			}
+			login.Attempt = true
 			setSession(s, res)
+			storeUserLogin(login)
 			redirect = "/example"
 		} else {
+			login.Attempt = false
+			storeUserLogin(login)
 			setMsg(res, "msg", "Please signup or enter a valid username and password!")
 		}
 	} else {
@@ -256,6 +288,22 @@ func search(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	render(res, "search", &Page{Title: strings.Title(sValue)})
+}
+
+func getIP(req *http.Request) (string, error) {
+	ip, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return "", err
+	}
+	if ip == "::1" {
+		cmd := "ip route get 8.8.8.8 | awk '{print $NF; exit}'"
+		out, err := exec.Command("bash", "-c", cmd).Output()
+		if err != nil {
+			return "", err
+		}
+		ip = strings.TrimSpace(string(out))
+	}
+	return ip, nil
 }
 
 // render is used to write html templates to the response writer

@@ -38,7 +38,28 @@ type Session struct {
 	Time      int
 }
 
-var Timeout int = 30 // seconds
+// Timeout variable is used to determine if the session should timeout (in seconds)
+var Timeout = 300
+
+// LoginDetails is for tracking successful and failed login attempts of users and ip addresses
+type LoginDetails struct {
+	IP        string
+	UserName  string
+	Timestamp int
+	Attempt   bool
+}
+
+// MaxUserAttempts is the maximum number of failed login attempts to be made
+// on a specific user over a given period of time
+var MaxUserAttempts = 3
+
+// MaxUserAttempts is the maximum number of failed login attempts to be made
+// from a specific ip address over a given period of time
+var MaxIPAttempts = 6
+
+// LoginAttemptTime is the period of time in which the use is allowed to make
+// incorrect logins within this time frame
+var LoginAttemptTime = 10 * 60
 
 // SaveCache is for saving webpages to a sqlite DB first, if fails, then attempts to load a cached file
 func (p Page) SaveCache() error {
@@ -255,4 +276,53 @@ func uuid() string {
 		log.Fatal(err)
 	}
 	return strings.TrimSpace(string(out))
+}
+
+func storeUserLogin(login *LoginDetails) error {
+	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	defer db.Close()
+	db.Exec("create table if not exists logins (ip text not null, username text not null, timestamp integer not null, attempt text not null)")
+	tx, _ := db.Begin()
+	stmt, _ := tx.Prepare("insert into logins (ip, username, timestamp, attempt) values (?, ?, ?, ?)")
+	_, err := stmt.Exec(login.IP, login.UserName, login.Timestamp, login.Attempt)
+	tx.Commit()
+	return err
+}
+
+func checkUserLoginAttempts(username string) bool {
+	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	defer db.Close()
+	tm := int(time.Now().Unix()) - LoginAttemptTime
+	q, err := db.Query("select username from logins where username = '" + username + "' and timestamp > '" + strconv.Itoa(tm) + "' and attempt = '0'")
+	if err != nil {
+		log.Fatal(err)
+	}
+	numFails := 0
+	for q.Next() {
+		q.Scan()
+		numFails++
+	}
+	if numFails >= MaxUserAttempts {
+		return false
+	}
+	return true
+}
+
+func checkIPLoginAttempts(ip string) bool {
+	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	defer db.Close()
+	tm := int(time.Now().Unix()) - LoginAttemptTime
+	q, err := db.Query("select ip from logins where ip = '" + ip + "' and timestamp > '" + strconv.Itoa(tm) + "' and attempt = '0'")
+	if err != nil {
+		log.Fatal(err)
+	}
+	numFails := 0
+	for q.Next() {
+		q.Scan()
+		numFails++
+	}
+	if numFails >= MaxIPAttempts {
+		return false
+	}
+	return true
 }
