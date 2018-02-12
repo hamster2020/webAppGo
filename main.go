@@ -3,6 +3,8 @@ package main
 import (
 	"html/template"
 	"io"
+	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -12,7 +14,7 @@ import (
 	"time"
 )
 
-var validPath = regexp.MustCompile(`^/(edit|save|view)/([:\w+:]+)$`)
+var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:\w+:]+]?)$`)
 
 // view is a function handler for handling http requests
 func view(res http.ResponseWriter, req *http.Request, title string) {
@@ -361,6 +363,28 @@ func create(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// DisplayFiles will query all files in ./files/ and display them to the user
+func DisplayFiles(res http.ResponseWriter, req *http.Request) {
+	files, err := ioutil.ReadDir("./files/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	render(res, "displayFiles", files)
+}
+
+func download(res http.ResponseWriter, req *http.Request, title string) {
+
+	file, err := os.Open("./files/" + title)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	res.Header().Set("Content-Disposition", "attachment; filename="+title)
+	res.Header().Set("Content-Type", req.Header.Get("Content-Type"))
+	io.Copy(res, file)
+}
+
 func search(res http.ResponseWriter, req *http.Request) {
 	sValue := req.FormValue("search")
 	sValue = strings.Title(sValue)
@@ -438,5 +462,7 @@ func main() {
 	http.HandleFunc("/upload/", checkUUID(upload))
 	http.HandleFunc("/create/", checkUUID(create))
 	http.HandleFunc("/search", checkUUID(search))
+	http.HandleFunc("/display", checkUUID(DisplayFiles))
+	http.HandleFunc("/download/", checkUUID(checkPath(download)))
 	http.ListenAndServe(":8000", nil)
 }

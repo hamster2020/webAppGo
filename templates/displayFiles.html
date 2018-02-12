@@ -1,27 +1,30 @@
-{{define "upload"}}
+{{define "displayFiles"}}
 {{template "header" .}}
-{{template "navbar-upload" .}}
+{{template "navbar-display" .}}
 <div class="jumbotron">
-    <h1 class="text-center">Upload a File!</h1>
+	<h1 class="text-center">Files</h1>
 </div>
-<div class="container-fluid">
-    <form class="form-signin" method="post" action="/upload/" enctype="multipart/form-data">
-        <fieldset>
-            <input type="file" name="myfiles" id="myfiles" multiple="multiple" class="btn btn-info">
-            <input type="submit" name="submit" value="Submit" class="btn btn-info">
-        </fieldset>
-    </form>
+
+<div>
+	<ul class="list-group">
+		{{range .}}
+		<li class="list-group-item">
+		    <a href="/files/{{.Name}}">{{.Name}}</a>
+				<a href="/download/{{.Name}}" class="btn btn-info">Download
+          <span class="glyphicon glyphicon-download"></span>
+				</a>
+		</li>
+		{{end}}
+	</ul>
 </div>
 {{template "footer" .}}
-
-</template>
 {{end}}
 
-{{define "navbar-upload"}}
+{{define "navbar-display"}}
 <nav class="navbar navbar-inverse">
 	<ul class="nav navbar-nav">
 		<li class="nav-item active">
-			<a class="nav-link" href="#">Upload a file!<span class="sr-only">(current)</span></a>
+			<a class="nav-link" href="#">Display files!<span class="sr-only">(current)</span></a>
 		</li>
 		<li class="nav-item">
 			<a class="nav-link" href="/example/">Home</a>
