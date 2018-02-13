@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	//	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -63,17 +64,16 @@ var LoginAttemptTime = 10 * 60
 
 // SaveCache is for saving webpages to a sqlite DB first, if fails, then attempts to load a cached file
 func (p Page) SaveCache() error {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	if strings.Contains(p.Title, " ") {
 		p.Title = strings.Replace(p.Title, " ", "_", -1)
 	}
 	f := "cache/" + p.Title + ".txt"
-	db.Exec("create table if not exists pages (title text, body blob, timestamp text)")
+	db.Exec("CREATE TABLE IF NOT EXISTS webappschema.pages (title TEXT, body BYTEA, timestamp TEXT);")
 	tx, _ := db.Begin()
-	stmt, _ := tx.Prepare("insert into pages (title, body, timestamp) values (?, ?, ?)")
-	_, err := stmt.Exec(p.Title, p.Body, timestamp)
+	_, err = tx.Exec("INSERT INTO webappschema.pages (title, body, timestamp) VALUES ($1, $2, $3)", p.Title, p.Body, timestamp)
 	tx.Commit()
 	ioutil.WriteFile(f, p.Body, 0600)
 	return err
@@ -81,7 +81,7 @@ func (p Page) SaveCache() error {
 
 // load is for loading webpages from a file
 func load(title string) (*Page, error) {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	f := "cache/" + title + ".txt"
 	body, err := ioutil.ReadFile(f)
@@ -93,11 +93,11 @@ func load(title string) (*Page, error) {
 
 // loadSource is for loading webpages from a database
 func loadSource(title string) (*Page, error) {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	var name string
 	var body []byte
-	q, err := db.Query("select title, body from pages where title = '" + title + "' order by timestamp Desc limit 1")
+	q, err := db.Query("SELECT * FROM webappschema.pages WHERE title = '" + title + "' ORDER BY timestamp DESC LIMIT 1")
 	if err != nil {
 		return nil, err
 	}
@@ -109,24 +109,22 @@ func loadSource(title string) (*Page, error) {
 
 // saveUserData saves a User struct to the cache/db.sqlite3 db
 func saveUserData(u *User) error {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
-	db.Exec("create table if not exists users (uuid text not null unique, firstname text not null, lastname text not null, username text not null unique, email text not null, password text not null, primary key(uuid))")
+	db.Exec("CREATE TABLE IF NOT EXISTS webappschema.users (userid TEXT NOT NULL UNIQUE, firstname TEXT NOT NULL, lastname TEXT NOT NULL, username TEXT NOT NULL UNIQUE, email TEXT NOT NULL, password TEXT NOT NULL, PRIMARY KEY(userid));")
 	tx, _ := db.Begin()
-	stmt, _ := tx.Prepare("insert into users (uuid, firstname, lastname, username, email, password) values (?, ?, ?, ?, ?, ?)")
-	_, err := stmt.Exec(u.UUID, u.Fname, u.Lname, u.Username, u.Email, u.Password)
+	_, err = tx.Exec("INSERT INTO webappschema.users (userid, firstname, lastname, username, email, password) VALUES ($1, $2, $3, $4, $5, $6)", u.UUID, u.Fname, u.Lname, u.Username, u.Email, u.Password)
 	tx.Commit()
 	return err
 }
 
 // deletes a user record from the users db
 func deleteUserData(u *User) error {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
-	db.Exec("create table if not exists users (uuid text not null unique, firstname text not null, lastname text not null, username text not null unique, email text not null, password text not null, primary key(uuid))")
+	db.Exec("CREATE TABLE IF NOT EXISTS webappschema.users (userid TEXT NOT NULL UNIQUE, firstname TEXT NOT NULL, lastname TEXT NOT NULL, username TEXT NOT NULL UNIQUE, email TEXT NOT NULL, password TEXT NOT NULL, PRIMARY KEY(userid));")
 	tx, _ := db.Begin()
-	stmt, _ := tx.Prepare("delete from users where uuid=?")
-	_, err := stmt.Exec(u.UUID)
+	_, err = tx.Exec("DELETE FROM webappschema.users WHERE userid=$1", u.UUID)
 	tx.Commit()
 	return err
 }
@@ -146,22 +144,21 @@ func updateUserData(u *User) error {
 
 // saveSession saves a user session to the cache/db.sqlite3 db
 func saveSession(s *Session) error {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
-	db.Exec("create table if not exists sessions (sessionid text not null unique, userid text not null, timestamp integer not null, primary key(sessionid))")
+	db.Exec("CREATE TABLE IF NOT EXISTS webappschema.sessions (sessionid TEXT NOT NULL UNIQUE, userid TEXT NOT NULL , timestamp INTEGER NOT NULL, PRIMARY KEY(sessionid));")
 	tx, _ := db.Begin()
-	stmt, _ := tx.Prepare("insert into sessions (sessionid, userid, timestamp) values (?, ?, ?)")
-	_, err := stmt.Exec(s.SessionID, s.UserID, s.Time)
+	_, err = tx.Exec("INSERT INTO webappschema.sessions (sessionid, userid, timestamp) VALUES ($1, $2, $3)", s.SessionID, s.UserID, s.Time)
 	tx.Commit()
 	return err
 }
 
 func pageExists(title string) (bool, error) {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	var pt string
 	var pb []byte
-	q, err := db.Query("select title, body from pages where title = '" + title + "' order by timestamp Desc limit 1")
+	q, err := db.Query("SELECT title, body FROM webappschema.pages WHERE title = '" + title + "' ORDER BY timestamp DESC LIMIT 1")
 	if err != nil {
 		return false, err
 	}
@@ -175,11 +172,11 @@ func pageExists(title string) (bool, error) {
 }
 
 func getSessionFromSessionID(sessionid string) *Session {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	var sid, uid string
 	var time int
-	q, err := db.Query("select * from sessions where sessionid = '" + sessionid + "'")
+	q, err := db.Query("SELECT * FROM webappschema.sessions WHERE sessionid = '" + sessionid + "'")
 	if err != nil {
 		return &Session{}
 	}
@@ -196,23 +193,22 @@ func getSessionFromSessionID(sessionid string) *Session {
 // clearSession removes the session cookie
 func clearSession(res http.ResponseWriter, sessionid string) error {
 	clearCookie(res, "session")
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
-	db.Exec("create table if not exists sessions (sessionid text not null unique, userid text not null, timestamp integer not null, primary key(sessionid))")
+	db.Exec("CREATE TABLE IF NOT EXISTS webappschema.sessions (sessionid TEXT NOT NULL UNIQUE, userid TEXT NOT NULL, timestamp INTEGER NOT NULL, PRIMARY KEY(sessionid))")
 	tx, _ := db.Begin()
-	stmt, _ := tx.Prepare("delete from sessions where sessionid=?")
-	_, err := stmt.Exec(sessionid)
+	_, err = tx.Exec("DELETE FROM webappschema.sessions WHERE sessionid=$1", sessionid)
 	tx.Commit()
 	return err
 }
 
 // used to check if a user/password combination exist in the db
 func sessionIsValid(res http.ResponseWriter, sessionid string) (bool, string) {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	var sid, uid string
 	var tm int
-	q, err := db.Query("select * from sessions where sessionid = '" + sessionid + "'")
+	q, err := db.Query("SELECT * FROM webappschema.sessions WHERE sessionid = '" + sessionid + "'")
 	if err != nil {
 		return false, ""
 	}
@@ -231,10 +227,10 @@ func sessionIsValid(res http.ResponseWriter, sessionid string) (bool, string) {
 }
 
 func getUserFromUUID(uuid string) *User {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	var uu, fn, ln, un, em, pass string
-	q, err := db.Query("select * from users where uuid = '" + uuid + "'")
+	q, err := db.Query("SELECT * FROM webappschema.users WHERE userid = '" + uuid + "'")
 	if err != nil {
 		return &User{}
 	}
@@ -253,10 +249,10 @@ func getUserFromUUID(uuid string) *User {
 
 // used to check if a user/password combination exist in the db
 func userExists(u *User) (bool, string) {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	var password, userID string
-	q, err := db.Query("select uuid, password from users where username = '" + u.Username + "'")
+	q, err := db.Query("SELECT userid, password FROM webappschema.users WHERE username = '" + u.Username + "'")
 	if err != nil {
 		return false, ""
 	}
@@ -271,10 +267,10 @@ func userExists(u *User) (bool, string) {
 }
 
 func checkUser(user string) bool {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	var un string
-	q, err := db.Query("select username from users where username = '" + user + "'")
+	q, err := db.Query("SELECT username FROM webappschema.users WHERE username = '" + user + "'")
 	if err != nil {
 		return false
 	}
@@ -304,22 +300,21 @@ func uuid() string {
 }
 
 func storeUserLogin(login *LoginDetails) error {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
-	db.Exec("create table if not exists logins (ip text not null, username text not null, timestamp integer not null, attempt text not null)")
+	db.Exec("CREATE TABLE IF NOT EXISTS webappschema.logins (ip TEXT NOT NULL, username TEXT NOT NULL, timestamp INTEGER NOT NULL, attempt TEXT NOT NULL)")
 	tx, _ := db.Begin()
-	stmt, _ := tx.Prepare("insert into logins (ip, username, timestamp, attempt) values (?, ?, ?, ?)")
-	_, err := stmt.Exec(login.IP, login.UserName, login.Timestamp, login.Attempt)
+	_, err = tx.Exec("INSERT INTO webappschema.logins (ip, username, timestamp, attempt) VALUES ($1, $2, $3, $4)", login.IP, login.UserName, login.Timestamp, login.Attempt)
 	tx.Commit()
 	return err
 }
 
 func checkUserLoginAttempts(username string) bool {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
-	db.Exec("create table if not exists logins (ip text not null, username text not null, timestamp integer not null, attempt text not null)")
+	db.Exec("CREATE TABLE IF NOT EXISTS webappschema.logins (ip TEXT NOT NULL, username TEXT NOT NULL, timestamp INTEGER NOT NULL, attempt TEXT NOT NULL)")
 	tm := int(time.Now().Unix()) - LoginAttemptTime
-	q, err := db.Query("select username from logins where username = '" + username + "' and timestamp > '" + strconv.Itoa(tm) + "' and attempt = '0'")
+	q, err := db.Query("SELECT username FROM webappschema.logins WHERE username = '" + username + "' AND timestamp > '" + strconv.Itoa(tm) + "' AND attempt = '0'")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -335,10 +330,10 @@ func checkUserLoginAttempts(username string) bool {
 }
 
 func checkIPLoginAttempts(ip string) bool {
-	var db, _ = sql.Open("sqlite3", "cache/db.sqlite3")
+	db, err := sql.Open("postgres", "postgres://hamster2020:password@localhost/webappgo?sslmode=disable")
 	defer db.Close()
 	tm := int(time.Now().Unix()) - LoginAttemptTime
-	q, err := db.Query("select ip from logins where ip = '" + ip + "' and timestamp > '" + strconv.Itoa(tm) + "' and attempt = '0'")
+	q, err := db.Query("SELECT ip FROM webappschema.logins WHERE ip = '" + ip + "' AND timestamp > '" + strconv.Itoa(tm) + "' AND attempt = '0'")
 	if err != nil {
 		log.Fatal(err)
 	}
