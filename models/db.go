@@ -100,6 +100,7 @@ func postgresVsSQLite(driverType, stmt string) string {
 		for i := 0; i < strings.Count(stmt, "?"); i++ {
 			stmt = strings.Replace(stmt, "?", "$"+string(i), 1)
 		}
+		stmt = strings.Replace(stmt, "GLOB", "BYTEA", 0)
 		return stmt
 	case "sqlite3":
 		var re = regexp.MustCompile(`([\$/][\d])`)
