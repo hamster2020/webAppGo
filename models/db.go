@@ -6,8 +6,17 @@ import (
 	"regexp"
 	"strings"
 	//include the pq driver package here due to the VMC file structure
-	_ "github.com/lib/pq"
+	//_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
+
+// DataSourceDriver defines the driver type of the db
+// choose between "postgres" and "sqlite3"
+var DataSourceDriver = "sqlite3"
+
+// DataSourceName defines the connection details of the db
+// choose between "postgres://hamster2020:password@localhost/webappgo?sslmode=disable" and "cache/db.sqlite3"
+var DataSourceName = "cache/db.sqlite3"
 
 // Datastore interface uses its interface-implementation feature to set up
 // a clean implementation of dependency-injection
@@ -46,12 +55,6 @@ type DB struct {
 	*sql.DB
 }
 
-// DataSourceDriver defines the driver type of the db
-var DataSourceDriver = "postgres"
-
-// DataSourceName defines the connection details of the db
-var DataSourceName = "postgres://hamster2020:password@localhost/webappgo?sslmode=disable"
-
 // sql statements:
 // pages table
 var createPagesTable = postgresVsSQLite(DataSourceDriver, "CREATE TABLE IF NOT EXISTS pages (title TEXT, body BYTEA, timestamp TEXT)")
@@ -82,6 +85,7 @@ var selectRecentIPsFromLoginsTable = postgresVsSQLite(DataSourceDriver, "SELECT 
 // NewDB initializes DB object, tests the connection, and returns it
 func NewDB(dataSourceDriver, dataSourceName string) (*DB, error) {
 	db, err := sql.Open(dataSourceDriver, dataSourceName)
+
 	if err != nil {
 		return nil, err
 	}
