@@ -15,11 +15,11 @@ type User struct {
 
 // SaveUser saves a user as a record to the users table in the db
 func (db *DB) SaveUser(u *User) error {
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (userid TEXT NOT NULL UNIQUE, firstname TEXT NOT NULL, lastname TEXT NOT NULL, username TEXT NOT NULL UNIQUE, email TEXT NOT NULL, password TEXT NOT NULL, PRIMARY KEY(userid));")
+	_, err := db.Exec(createUsersTable)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("INSERT INTO users (userid, firstname, lastname, username, email, password) VALUES ($1, $2, $3, $4, $5, $6)", u.UUID, u.Fname, u.Lname, u.Username, u.Email, u.Password)
+	_, err = db.Exec(insertIntoUsersTable, u.UUID, u.Fname, u.Lname, u.Username, u.Email, u.Password)
 	if err != nil {
 		return err
 	}
@@ -28,11 +28,11 @@ func (db *DB) SaveUser(u *User) error {
 
 // DeleteUser deletes a user record from the users table in the db
 func (db *DB) DeleteUser(u *User) error {
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (userid TEXT NOT NULL UNIQUE, firstname TEXT NOT NULL, lastname TEXT NOT NULL, username TEXT NOT NULL UNIQUE, email TEXT NOT NULL, password TEXT NOT NULL, PRIMARY KEY(userid));")
+	_, err := db.Exec(createUsersTable)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("DELETE FROM users WHERE userid=$1", u.UUID)
+	_, err = db.Exec(deleteFromUsersTable, u.UUID)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (db *DB) UpdateUser(u *User) error {
 // GetUserFromUserID retrieves a user record from the db, given the userid
 func (db *DB) GetUserFromUserID(userid string) *User {
 	var uid, fn, ln, un, em, pass string
-	rows, err := db.Query("SELECT * FROM users WHERE userid = '" + userid + "'")
+	rows, err := db.Query(selectUserFromTable, userid)
 	if err != nil {
 		return &User{}
 	}
@@ -75,7 +75,7 @@ func (db *DB) GetUserFromUserID(userid string) *User {
 // UserExists is used to check if a user/password combination exist in the db
 func (db *DB) UserExists(u *User) (bool, string) {
 	var password, userid string
-	rows, err := db.Query("SELECT userid, password FROM users WHERE username = '" + u.Username + "'")
+	rows, err := db.Query(selectUsernamePasswordFromTable, u.Username)
 	if err != nil {
 		return false, ""
 	}
@@ -92,7 +92,7 @@ func (db *DB) UserExists(u *User) (bool, string) {
 // CheckUser checks if a given username is in the users table in the db
 func (db *DB) CheckUser(username string) bool {
 	var un string
-	rows, err := db.Query("SELECT username FROM users WHERE username = '" + username + "'")
+	rows, err := db.Query(selectUsernameFromTable, username)
 	if err != nil {
 		return false
 	}

@@ -32,11 +32,11 @@ func (db *DB) SavePage(p *Page) error {
 	if strings.Contains(p.Title, " ") {
 		p.Title = strings.Replace(p.Title, " ", "_", -1)
 	}
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS pages (title TEXT, body BYTEA, timestamp TEXT)")
+	_, err := db.Exec(createPagesTable)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("INSERT INTO pages (title, body, timestamp) VALUES ($1, $2, $3)", p.Title, p.Body, timestamp)
+	_, err = db.Exec(insertIntoPagesTable, p.Title, p.Body, timestamp)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func LoadPageFromCache(title string) (*Page, error) {
 func (db *DB) LoadPage(title string) (*Page, error) {
 	var name string
 	var body []byte
-	rows, err := db.Query("SELECT * FROM pages WHERE title = '" + title + "' ORDER BY timestamp DESC LIMIT 1")
+	rows, err := db.Query(selectPageFromTable, title)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (db *DB) LoadPage(title string) (*Page, error) {
 func (db *DB) PageExists(title string) (bool, error) {
 	var pt string
 	var pb []byte
-	rows, err := db.Query("SELECT title, body FROM pages WHERE title = '" + title + "' ORDER BY timestamp DESC LIMIT 1")
+	rows, err := db.Query(selectTitleBodyFromTable, title)
 	if err != nil {
 		return false, err
 	}

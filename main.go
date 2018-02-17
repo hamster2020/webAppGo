@@ -21,9 +21,6 @@ type Env struct {
 	db models.Datastore
 }
 
-var dataSourceDriver = "postgres"
-var dataSourceName = "postgres://hamster2020:password@localhost/webappgo?sslmode=disable"
-
 var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:\w+:]+]?)$`)
 
 // view is a function handler for handling http requests
@@ -462,7 +459,7 @@ func checkPath(fn func(http.ResponseWriter, *http.Request, string)) http.Handler
 }
 
 func main() {
-	db, err := models.NewDB(dataSourceDriver, dataSourceName)
+	db, err := models.NewDB(models.DataSourceDriver, models.DataSourceName)
 	if err != nil {
 		panic(err)
 	}
