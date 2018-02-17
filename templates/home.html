@@ -1,41 +1,41 @@
-{{define "internal"}}
+{{define "home"}}
 {{template "header" .}}
-{{template "navbar-internal" .}}
+{{template "navbar-home" .}}
 <div class="alert alert-info" role="alert">
-  <h1 class="alert">Welcome!</h1>
+  <h1 class="alert">Welcome</h1>
   <hr>
 
   <strong>Hello User: {{.Username}}</strong>
 </div>
 <div class="jumbotron">
   <div class="container">
-    what would you like to do today {{.Fname}} {{.Lname}}?
+    What would you like to do today {{.Fname}} {{.Lname}}?
   </div>
 </div>
 {{template "footer" .}}
 {{end}}
 
-{{define "navbar-internal"}}
+{{define "navbar-home"}}
 <nav class="navbar navbar-inverse">
 	<ul class="nav navbar-nav">
 		<li class="nav-item active">
-			<a class="nav-link" href="#">Home Page<span class="sr-only">(current)</span></a>
+			<a class="nav-link" href="#">Home page<span class="sr-only">(current)</span></a>
 		</li>
 		<li class="nav-item">
 			<a class="nav-link" href="/example/">Home</a>
 		</li>
 		<li class="nav-item">
-			<a class="nav-link" href="/create/">Create a new Page!</a>
+			<a class="nav-link" href="/create/">Create a new page</a>
 		</li>
 		<li class="nav-item">
-			<a class="nav-link" href="/upload/">Upload a File!</a>
+			<a class="nav-link" href="/upload/">Upload a file</a>
 		</li>
 		<li class="nav-item">
-			<a class="nav-link" href="/display">Display files!</a>
+			<a class="nav-link" href="/display">Display files</a>
 		</li>
     <form method="POST" action="/search" class="navbar-form navbar-left">
       <div class="form-group">
-        <input type="text" id="search" name="search" class="form-control" placeholder="Search for a page!">
+        <input type="text" id="search" name="search" class="form-control" placeholder="Search for a page">
       </div>
       <button type="submit" class="btn btn-default">Submit</button>
     </form>

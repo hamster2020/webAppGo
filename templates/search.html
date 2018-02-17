@@ -2,9 +2,9 @@
 {{template "header" .}}
 {{template "navbar" .}}
 <div class="jumbotron">
-  <h3 class="text-center">{{.Title}} does not exist!</h3>
+  <h3 class="text-center">{{.Title | deurlize}} does not exist</h3>
   <div class="container-fuild">
-    [<a href="/create/">Click here to create a page!</a>]
+    [<a href="/create/">Click here to create a page</a>]
   </div>
 </div>
 {{template "footer" .}}

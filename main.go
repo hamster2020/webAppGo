@@ -39,7 +39,7 @@ func (env *Env) view(res http.ResponseWriter, req *http.Request, title string) {
 	if strings.Contains(p.Title, "_") {
 		p.Title = strings.Replace(p.Title, "_", " ", -1)
 	}
-	render(res, "test", p)
+	render(res, "view", p)
 }
 
 // edit is a function handler for handling http requests
@@ -72,7 +72,7 @@ func (env *Env) save(res http.ResponseWriter, req *http.Request, title string) {
 }
 
 // upload is a function that allows the user to upload files to the server
-func (env *Env) upload(res http.ResponseWriter, req *http.Request) {
+func upload(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
 		title := "Upload"
@@ -117,7 +117,7 @@ func (env *Env) upload(res http.ResponseWriter, req *http.Request) {
 func (env *Env) indexPage(res http.ResponseWriter, req *http.Request) {
 	sessionID := models.GetSessionIDFromCookie(req)
 	if foundSessionID, _ := env.db.IsSessionValid(res, sessionID); foundSessionID == true {
-		http.Redirect(res, req, "/example", 302)
+		http.Redirect(res, req, "/home", 302)
 		return
 	}
 	msg := models.GetMsg(res, req, "msg")
@@ -176,7 +176,7 @@ func (env *Env) login(res http.ResponseWriter, req *http.Request) {
 			login.Attempt = true
 			env.db.SetSession(s, res)
 			env.db.SaveLogin(login)
-			redirect = "/example"
+			redirect = "/home"
 		} else {
 			login.Attempt = false
 			env.db.SaveLogin(login)
@@ -196,13 +196,13 @@ func (env *Env) logout(res http.ResponseWriter, req *http.Request) {
 	http.Redirect(res, req, "/", 302)
 }
 
-// examplePage is a function hanlder for when the user successfully sets up a session
-func (env *Env) examplePage(res http.ResponseWriter, req *http.Request) {
+// homePage is a function hanlder for when the user successfully sets up a session
+func (env *Env) homePage(res http.ResponseWriter, req *http.Request) {
 	sessionID := models.GetSessionIDFromCookie(req)
 	session := env.db.GetSessionFromSessionID(sessionID)
 	u := env.db.GetUserFromUserID(session.UserID)
 	if session.UserID != "" {
-		render(res, "internal", u)
+		render(res, "home", u)
 	} else {
 		models.SetMsg(res, "msg", "Please login first!")
 		http.Redirect(res, req, "/", 302)
@@ -427,7 +427,8 @@ func getIP(req *http.Request) (string, error) {
 // render is used to write html templates to the response writer
 func render(res http.ResponseWriter, name string, data interface{}) {
 	funcMap := template.FuncMap{
-		"urlize": func(s string) string { return strings.Replace(s, " ", "_", -1) },
+		"urlize":   func(s string) string { return strings.Replace(s, " ", "_", -1) },
+		"deurlize": func(s string) string { return strings.Replace(s, "_", " ", -1) },
 	}
 	tmpl, err := template.New(name).Funcs(funcMap).ParseGlob("templates/*.html")
 	if err != nil {
@@ -471,14 +472,14 @@ func main() {
 	http.HandleFunc("/", env.indexPage)
 	http.HandleFunc("/login", env.login)
 	http.HandleFunc("/logout", env.logout)
-	http.HandleFunc("/example", env.examplePage)
+	http.HandleFunc("/home", env.homePage)
 	http.HandleFunc("/signup", env.signup)
 	http.HandleFunc("/account", env.checkUUID(env.account))
 	http.HandleFunc("/delete", env.checkUUID(env.deleteAccount))
 	http.HandleFunc("/view/", env.checkUUID(checkPath(env.view)))
 	http.HandleFunc("/edit/", env.checkUUID(checkPath(env.edit)))
 	http.HandleFunc("/save/", env.checkUUID(checkPath(env.save)))
-	http.HandleFunc("/upload/", env.checkUUID(env.upload))
+	http.HandleFunc("/upload/", env.checkUUID(upload))
 	http.HandleFunc("/create/", env.checkUUID(env.create))
 	http.HandleFunc("/search", env.checkUUID(env.search))
 	http.HandleFunc("/display", env.checkUUID(displayFiles))
