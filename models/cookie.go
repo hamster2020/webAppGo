@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"net/http"
@@ -12,12 +12,12 @@ var cookieHandler = securecookie.New(
 	securecookie.GenerateRandomKey(32),
 )
 
-// setSession creates a session for a user vie secure cookies
-func setSession(s *Session, res http.ResponseWriter) {
+// SetSession creates a session for a user vie secure cookies
+func (db *DB) SetSession(s *Session, res http.ResponseWriter) {
 	value := map[string]string{
 		"uuid": s.SessionID,
 	}
-	saveSession(s)
+	db.SaveSession(s)
 	encoded, err := cookieHandler.Encode("session", value)
 	if err == nil {
 		cookie := &http.Cookie{
@@ -29,8 +29,8 @@ func setSession(s *Session, res http.ResponseWriter) {
 	}
 }
 
-// getUserName extracts the username from the session cookie in the http response
-func getSessionIDFromCookie(req *http.Request) (uuid string) {
+// GetSessionIDFromCookie extracts the username from the session cookie in the http response
+func GetSessionIDFromCookie(req *http.Request) (uuid string) {
 	cookie, err := req.Cookie("session")
 	if err == nil {
 		cookieValue := make(map[string]string)
@@ -41,8 +41,8 @@ func getSessionIDFromCookie(req *http.Request) (uuid string) {
 	return uuid
 }
 
-// clearCookie removes the given cookie from the client's browser
-func clearCookie(res http.ResponseWriter, name string) {
+// ClearCookie removes the given cookie from the client's browser
+func ClearCookie(res http.ResponseWriter, name string) {
 	cookie := &http.Cookie{
 		Name:   name,
 		Value:  "",
@@ -52,22 +52,22 @@ func clearCookie(res http.ResponseWriter, name string) {
 	http.SetCookie(res, cookie)
 }
 
-// getMsg attempts to extract a secure cookie name from the request header,
+// GetMsg attempts to extract a secure cookie name from the request header,
 // decodes it, and clears it in the response header
-func getMsg(res http.ResponseWriter, req *http.Request, name string) (msg string) {
+func GetMsg(res http.ResponseWriter, req *http.Request, name string) (msg string) {
 	if cookie, err := req.Cookie(name); err == nil {
 		cookieValue := make(map[string]string)
 		if err = cookieHandler.Decode(name, cookie.Value, &cookieValue); err == nil {
 			msg = cookieValue[name]
-			clearCookie(res, name)
+			ClearCookie(res, name)
 		}
 	}
 	return msg
 }
 
-// setMsg encodes a name-msg pair into a cookie and
+// SetMsg encodes a name-msg pair into a cookie and
 // sends it in the response header.
-func setMsg(res http.ResponseWriter, name string, msg string) {
+func SetMsg(res http.ResponseWriter, name string, msg string) {
 	value := map[string]string{
 		name: msg,
 	}

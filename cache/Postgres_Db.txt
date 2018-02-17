@@ -1,3 +1,0 @@
-this is a test for the PostgreSQL db that stores this file!
-
-Edited edition too!

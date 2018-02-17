@@ -12,18 +12,28 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/hamster2020/webAppGo/models"
 )
+
+// Env stores environemnt and application scope data to be easily passed to http handlers
+type Env struct {
+	db models.Datastore
+}
+
+var dataSourceDriver = "postgres"
+var dataSourceName = "postgres://hamster2020:password@localhost/webappgo?sslmode=disable"
 
 var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:\w+:]+]?)$`)
 
 // view is a function handler for handling http requests
-func view(res http.ResponseWriter, req *http.Request, title string) {
-	p, err := loadSource(title)
+func (env *Env) view(res http.ResponseWriter, req *http.Request, title string) {
+	p, err := models.LoadPageFromCache(title)
 	if err != nil {
-		p, _ = load(title)
+		p, _ = env.db.LoadPage(title)
 	}
 	if p.Title == "" {
-		p, _ = load(title)
+		p, _ = env.db.LoadPage(title)
 	}
 	if p == nil {
 		http.NotFound(res, req)
@@ -36,13 +46,13 @@ func view(res http.ResponseWriter, req *http.Request, title string) {
 }
 
 // edit is a function handler for handling http requests
-func edit(res http.ResponseWriter, req *http.Request, title string) {
-	p, err := loadSource(title)
+func (env *Env) edit(res http.ResponseWriter, req *http.Request, title string) {
+	p, err := models.LoadPageFromCache(title)
 	if err != nil {
-		p, _ = load(title)
+		p, _ = env.db.LoadPage(title)
 	}
 	if p.Title == "" {
-		p, _ = load(title)
+		p, _ = env.db.LoadPage(title)
 	}
 	if p == nil {
 		http.NotFound(res, req)
@@ -55,20 +65,21 @@ func edit(res http.ResponseWriter, req *http.Request, title string) {
 }
 
 // save is a function handler for making HTTP post requests of Pages to the server
-func save(res http.ResponseWriter, req *http.Request, title string) {
+func (env *Env) save(res http.ResponseWriter, req *http.Request, title string) {
 	title = strings.Replace(strings.Title(title), " ", "_", -1)
 	body := []byte(req.FormValue("body"))
-	page := &Page{Title: title, Body: body}
-	page.SaveCache()
+	page := &models.Page{Title: title, Body: body}
+	page.SaveToCache()
+	env.db.SavePage(page)
 	http.Redirect(res, req, "/view/"+title, http.StatusFound)
 }
 
 // upload is a function that allows the user to upload files to the server
-func upload(res http.ResponseWriter, req *http.Request) {
+func (env *Env) upload(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
 		title := "Upload"
-		p := &Page{Title: title}
+		p := &models.Page{Title: title}
 		render(res, "upload", p)
 
 	case "POST":
@@ -106,36 +117,36 @@ func upload(res http.ResponseWriter, req *http.Request) {
 }
 
 // indexPage is a function handler to return to the client the index.html page
-func indexPage(res http.ResponseWriter, req *http.Request) {
-	sessionID := getSessionIDFromCookie(req)
-	if foundSessionID, _ := sessionIsValid(res, sessionID); foundSessionID == true {
+func (env *Env) indexPage(res http.ResponseWriter, req *http.Request) {
+	sessionID := models.GetSessionIDFromCookie(req)
+	if foundSessionID, _ := env.db.IsSessionValid(res, sessionID); foundSessionID == true {
 		http.Redirect(res, req, "/example", 302)
 		return
 	}
-	msg := getMsg(res, req, "msg")
-	var u = &User{}
+	msg := models.GetMsg(res, req, "msg")
+	var u = &models.User{}
 	u.Errors = make(map[string]string)
 	if msg != "" {
 		u.Errors["message"] = msg
 		render(res, "signin", u)
 	} else {
-		u := &User{}
+		u := &models.User{}
 		render(res, "signin", u)
 	}
 }
 
 // login is the function handler for POST requests to login
-func login(res http.ResponseWriter, req *http.Request) {
-	u := &User{
+func (env *Env) login(res http.ResponseWriter, req *http.Request) {
+	u := &models.User{
 		Username: req.FormValue("uname"),
 		Password: req.FormValue("password"),
 	}
 	redirect := "/"
 	if u.Username != "" && u.Password != "" {
 
-		ok := checkUserLoginAttempts(u.Username)
+		ok := env.db.CheckUserLoginAttempts(u.Username)
 		if ok != true {
-			setMsg(res, "msg", "Too many incorrect login attempts were made for the provided username, try again in 10 minutes!")
+			models.SetMsg(res, "msg", "Too many incorrect login attempts were made for the provided username, try again in 10 minutes!")
 			http.Redirect(res, req, "/", 302)
 			return
 		}
@@ -145,114 +156,115 @@ func login(res http.ResponseWriter, req *http.Request) {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
 
-		ok = checkIPLoginAttempts(ip)
+		ok = env.db.CheckIPLoginAttempts(ip)
 		if ok != true {
-			setMsg(res, "msg", "Too many incorrect login attempts were made from you, try again in 10 minutes!")
+			models.SetMsg(res, "msg", "Too many incorrect login attempts were made from you, try again in 10 minutes!")
 			http.Redirect(res, req, "/", 302)
 			return
 		}
 
-		login := &LoginDetails{
+		login := &models.Login{
 			IP:        ip,
 			UserName:  u.Username,
 			Timestamp: int(time.Now().Unix()),
 		}
 
-		b, userID := userExists(u)
+		b, userID := env.db.UserExists(u)
 		if b == true {
-			s := &Session{
-				SessionID: uuid(),
+			s := &models.Session{
+				SessionID: models.UUID(),
 				UserID:    userID,
 				Time:      int(time.Now().Unix()),
 			}
 			login.Attempt = true
-			setSession(s, res)
-			storeUserLogin(login)
+			env.db.SetSession(s, res)
+			env.db.SaveLogin(login)
 			redirect = "/example"
 		} else {
 			login.Attempt = false
-			storeUserLogin(login)
-			setMsg(res, "msg", "Please signup or enter a valid username and password!")
+			env.db.SaveLogin(login)
+			models.SetMsg(res, "msg", "Please signup or enter a valid username and password!")
 		}
 	} else {
-		setMsg(res, "msg", "Username or Password field are empty!")
+		models.SetMsg(res, "msg", "Username or Password field are empty!")
 	}
 	http.Redirect(res, req, redirect, 302)
 }
 
 // logout merely clears the session cookie and redirects to the index endnode
-func logout(res http.ResponseWriter, req *http.Request) {
-	sessionID := getSessionIDFromCookie(req)
-	clearSession(res, sessionID)
+func (env *Env) logout(res http.ResponseWriter, req *http.Request) {
+	sessionID := models.GetSessionIDFromCookie(req)
+	env.db.DeleteSession(res, sessionID)
+	models.ClearCookie(res, "session")
 	http.Redirect(res, req, "/", 302)
 }
 
 // examplePage is a function hanlder for when the user successfully sets up a session
-func examplePage(res http.ResponseWriter, req *http.Request) {
-	sessionID := getSessionIDFromCookie(req)
-	session := getSessionFromSessionID(sessionID)
-	u := getUserFromUUID(session.UserID)
+func (env *Env) examplePage(res http.ResponseWriter, req *http.Request) {
+	sessionID := models.GetSessionIDFromCookie(req)
+	session := env.db.GetSessionFromSessionID(sessionID)
+	u := env.db.GetUserFromUserID(session.UserID)
 	if session.UserID != "" {
 		render(res, "internal", u)
 	} else {
-		setMsg(res, "msg", "Please login first!")
+		models.SetMsg(res, "msg", "Please login first!")
 		http.Redirect(res, req, "/", 302)
 	}
 }
 
 // signup handles both GEt and POST methods, used for creating and sumitting signups
-func signup(res http.ResponseWriter, req *http.Request) {
+func (env *Env) signup(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		u := &User{}
+		u := &models.User{}
 		u.Errors = make(map[string]string)
-		u.Errors["lname"] = getMsg(res, req, "lname")
-		u.Errors["fname"] = getMsg(res, req, "fname")
-		u.Errors["username"] = getMsg(res, req, "username")
-		u.Errors["email"] = getMsg(res, req, "email")
-		u.Errors["password"] = getMsg(res, req, "password")
+		u.Errors["lname"] = models.GetMsg(res, req, "lname")
+		u.Errors["fname"] = models.GetMsg(res, req, "fname")
+		u.Errors["username"] = models.GetMsg(res, req, "username")
+		u.Errors["email"] = models.GetMsg(res, req, "email")
+		u.Errors["password"] = models.GetMsg(res, req, "password")
 		render(res, "signup", u)
 	case "POST":
-		n := checkUser(req.FormValue("userName"))
+		n := env.db.CheckUser(req.FormValue("userName"))
 		if n == true {
-			setMsg(res, "username", "User already exists. Please enter a unqiue user name!")
+			models.SetMsg(res, "username", "User already exists. Please enter a unqiue user name!")
 			http.Redirect(res, req, "/signup", 302)
 			return
 		}
-		u := &User{
-			UUID:     uuid(),
+		u := &models.User{
+			UUID:     models.UUID(),
 			Fname:    req.FormValue("fName"),
 			Lname:    req.FormValue("lName"),
 			Email:    req.FormValue("email"),
 			Username: req.FormValue("userName"),
 			Password: req.FormValue("password"),
 		}
-		result, err := ValidateUser(u)
+		result, err := models.ValidateUser(u)
 		if err != nil {
 			if strings.Contains(err.Error(), "Lname") {
-				setMsg(res, "lname", "The name, "+u.Lname+" is not valid!")
+				models.SetMsg(res, "lname", "The name, "+u.Lname+" is not valid!")
 			}
 			if strings.Contains(err.Error(), "Fname") {
-				setMsg(res, "fname", "The name, "+u.Fname+" is not valid!")
+				models.SetMsg(res, "fname", "The name, "+u.Fname+" is not valid!")
 			}
 			if strings.Contains(err.Error(), "Username") {
-				setMsg(res, "username", "The username, "+u.Username+" is not valid!")
+				models.SetMsg(res, "username", "The username, "+u.Username+" is not valid!")
 			}
 			if strings.Contains(err.Error(), "Email") {
-				setMsg(res, "email", "The email, "+u.Email+" is not valid!")
+				models.SetMsg(res, "email", "The email, "+u.Email+" is not valid!")
 			}
 			if strings.Contains(err.Error(), "Password") {
-				setMsg(res, "password", "Enter a valid passowrd!")
+				models.SetMsg(res, "password", "Enter a valid passowrd!")
 			}
 		}
 		if req.FormValue("password") != req.FormValue("cpassword") {
-			setMsg(res, "password", "The passwords you entered do not match!")
+			models.SetMsg(res, "password", "The passwords you entered do not match!")
 			http.Redirect(res, req, "/signup", 302)
 			return
 		}
 		if result == true {
-			u.Password = encryptPass(u.Password)
-			saveUserData(u)
+			u.Password = models.EncryptPass(u.Password)
+			env.db.SaveUser(u)
 			http.Redirect(res, req, "/", 302)
 			return
 		}
@@ -261,29 +273,29 @@ func signup(res http.ResponseWriter, req *http.Request) {
 }
 
 // account handles both GET and POST methods, used for updating account info
-func account(res http.ResponseWriter, req *http.Request) {
+func (env *Env) account(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		sessionID := getSessionIDFromCookie(req)
-		session := getSessionFromSessionID(sessionID)
-		u := getUserFromUUID(session.UserID)
+		sessionID := models.GetSessionIDFromCookie(req)
+		session := env.db.GetSessionFromSessionID(sessionID)
+		u := env.db.GetUserFromUserID(session.UserID)
 		u.Errors = make(map[string]string)
-		u.Errors["lname"] = getMsg(res, req, "lname")
-		u.Errors["fname"] = getMsg(res, req, "fname")
-		u.Errors["username"] = getMsg(res, req, "username")
-		u.Errors["email"] = getMsg(res, req, "email")
-		u.Errors["password"] = getMsg(res, req, "password")
+		u.Errors["lname"] = models.GetMsg(res, req, "lname")
+		u.Errors["fname"] = models.GetMsg(res, req, "fname")
+		u.Errors["username"] = models.GetMsg(res, req, "username")
+		u.Errors["email"] = models.GetMsg(res, req, "email")
+		u.Errors["password"] = models.GetMsg(res, req, "password")
 		render(res, "account", u)
 	case "POST":
 
-		sessionID := getSessionIDFromCookie(req)
-		session := getSessionFromSessionID(sessionID)
-		u := getUserFromUUID(session.UserID)
+		sessionID := models.GetSessionIDFromCookie(req)
+		session := env.db.GetSessionFromSessionID(sessionID)
+		u := env.db.GetUserFromUserID(session.UserID)
 
 		if u.Username != req.FormValue("userName") {
-			n := checkUser(req.FormValue("userName"))
+			n := env.db.CheckUser(req.FormValue("userName"))
 			if n == true {
-				setMsg(res, "username", "User already exists. Please enter a unqiue user name!")
+				models.SetMsg(res, "username", "User already exists. Please enter a unqiue user name!")
 				http.Redirect(res, req, "/account", 302)
 				return
 			}
@@ -295,34 +307,34 @@ func account(res http.ResponseWriter, req *http.Request) {
 		u.Username = req.FormValue("userName")
 		u.Password = req.FormValue("password")
 
-		result, err := ValidateUser(u)
+		result, err := models.ValidateUser(u)
 		if err != nil {
 			if strings.Contains(err.Error(), "Lname") {
-				setMsg(res, "lname", "The name, "+u.Lname+" is not valid!")
+				models.SetMsg(res, "lname", "The name, "+u.Lname+" is not valid!")
 			}
 			if strings.Contains(err.Error(), "Fname") {
-				setMsg(res, "fname", "The name, "+u.Fname+" is not valid!")
+				models.SetMsg(res, "fname", "The name, "+u.Fname+" is not valid!")
 			}
 			if strings.Contains(err.Error(), "Username") {
-				setMsg(res, "username", "The username, "+u.Username+" is not valid!")
+				models.SetMsg(res, "username", "The username, "+u.Username+" is not valid!")
 			}
 			if strings.Contains(err.Error(), "Email") {
-				setMsg(res, "email", "The email, "+u.Email+" is not valid!")
+				models.SetMsg(res, "email", "The email, "+u.Email+" is not valid!")
 			}
 			if strings.Contains(err.Error(), "Password") {
-				setMsg(res, "password", "Enter a valid passowrd!")
+				models.SetMsg(res, "password", "Enter a valid passowrd!")
 			}
 		}
 
 		if req.FormValue("password") != req.FormValue("cpassword") {
-			setMsg(res, "password", "The passwords you entered do not match!")
+			models.SetMsg(res, "password", "The passwords you entered do not match!")
 			http.Redirect(res, req, "/account", 302)
 			return
 		}
 
 		if result == true {
-			u.Password = encryptPass(u.Password)
-			updateUserData(u)
+			u.Password = models.EncryptPass(u.Password)
+			env.db.UpdateUser(u)
 			http.Redirect(res, req, "/", 302)
 			return
 		}
@@ -330,22 +342,22 @@ func account(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func deleteAccount(res http.ResponseWriter, req *http.Request) {
-	sessionID := getSessionIDFromCookie(req)
-	session := getSessionFromSessionID(sessionID)
-	user := getUserFromUUID(session.UserID)
-	err := deleteUserData(user)
+func (env *Env) deleteAccount(res http.ResponseWriter, req *http.Request) {
+	sessionID := models.GetSessionIDFromCookie(req)
+	session := env.db.GetSessionFromSessionID(sessionID)
+	user := env.db.GetUserFromUserID(session.UserID)
+	err := env.db.DeleteUser(user)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
-	clearSession(res, sessionID)
+	env.db.DeleteSession(res, sessionID)
 	http.Redirect(res, req, "/", 302)
 }
 
-func create(res http.ResponseWriter, req *http.Request) {
+func (env *Env) create(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		p := &Page{}
+		p := &models.Page{}
 		render(res, "create", p)
 	case "POST":
 		title := strings.Title(req.FormValue("title"))
@@ -353,8 +365,12 @@ func create(res http.ResponseWriter, req *http.Request) {
 			title = strings.Replace(title, " ", "_", -1)
 		}
 		body := req.FormValue("body")
-		p := &Page{Title: strings.Title(title), Body: []byte(body)}
-		err := p.SaveCache()
+		p := &models.Page{Title: strings.Title(title), Body: []byte(body)}
+		err := p.SaveToCache()
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
+		err = env.db.SavePage(p)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 		}
@@ -364,7 +380,7 @@ func create(res http.ResponseWriter, req *http.Request) {
 }
 
 // DisplayFiles will query all files in ./files/ and display them to the user
-func DisplayFiles(res http.ResponseWriter, req *http.Request) {
+func displayFiles(res http.ResponseWriter, req *http.Request) {
 	files, err := ioutil.ReadDir("./files/")
 	if err != nil {
 		log.Fatal(err)
@@ -373,7 +389,6 @@ func DisplayFiles(res http.ResponseWriter, req *http.Request) {
 }
 
 func download(res http.ResponseWriter, req *http.Request, title string) {
-
 	file, err := os.Open("./files/" + title)
 	if err != nil {
 		log.Fatal(err)
@@ -385,15 +400,15 @@ func download(res http.ResponseWriter, req *http.Request, title string) {
 	io.Copy(res, file)
 }
 
-func search(res http.ResponseWriter, req *http.Request) {
+func (env *Env) search(res http.ResponseWriter, req *http.Request) {
 	sValue := req.FormValue("search")
 	sValue = strings.Title(sValue)
 	sValue = strings.Replace(sValue, " ", "_", -1)
-	if b, _ := pageExists(strings.Title(sValue)); b == true {
+	if b, _ := env.db.PageExists(strings.Title(sValue)); b == true {
 		http.Redirect(res, req, "/view/"+sValue, 302)
 		return
 	}
-	render(res, "search", &Page{Title: strings.Title(sValue)})
+	render(res, "search", &models.Page{Title: strings.Title(sValue)})
 }
 
 func getIP(req *http.Request) (string, error) {
@@ -424,10 +439,10 @@ func render(res http.ResponseWriter, name string, data interface{}) {
 	tmpl.ExecuteTemplate(res, name, data)
 }
 
-func checkUUID(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func (env *Env) checkUUID(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		sessionID := getSessionIDFromCookie(req)
-		if foundSessionID, _ := sessionIsValid(res, sessionID); foundSessionID == true {
+		sessionID := models.GetSessionIDFromCookie(req)
+		if foundSessionID, _ := env.db.IsSessionValid(res, sessionID); foundSessionID == true {
 			fn(res, req)
 			return
 		}
@@ -447,22 +462,29 @@ func checkPath(fn func(http.ResponseWriter, *http.Request, string)) http.Handler
 }
 
 func main() {
+	db, err := models.NewDB(dataSourceDriver, dataSourceName)
+	if err != nil {
+		panic(err)
+	}
+
+	env := Env{db}
+
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("files"))))
-	http.HandleFunc("/", indexPage)
-	http.HandleFunc("/login", login)
-	http.HandleFunc("/logout", logout)
-	http.HandleFunc("/example", examplePage)
-	http.HandleFunc("/signup", signup)
-	http.HandleFunc("/account", checkUUID(account))
-	http.HandleFunc("/delete", checkUUID(deleteAccount))
-	http.HandleFunc("/view/", checkUUID(checkPath(view)))
-	http.HandleFunc("/edit/", checkUUID(checkPath(edit)))
-	http.HandleFunc("/save/", checkUUID(checkPath(save)))
-	http.HandleFunc("/upload/", checkUUID(upload))
-	http.HandleFunc("/create/", checkUUID(create))
-	http.HandleFunc("/search", checkUUID(search))
-	http.HandleFunc("/display", checkUUID(DisplayFiles))
-	http.HandleFunc("/download/", checkUUID(checkPath(download)))
+	http.HandleFunc("/", env.indexPage)
+	http.HandleFunc("/login", env.login)
+	http.HandleFunc("/logout", env.logout)
+	http.HandleFunc("/example", env.examplePage)
+	http.HandleFunc("/signup", env.signup)
+	http.HandleFunc("/account", env.checkUUID(env.account))
+	http.HandleFunc("/delete", env.checkUUID(env.deleteAccount))
+	http.HandleFunc("/view/", env.checkUUID(checkPath(env.view)))
+	http.HandleFunc("/edit/", env.checkUUID(checkPath(env.edit)))
+	http.HandleFunc("/save/", env.checkUUID(checkPath(env.save)))
+	http.HandleFunc("/upload/", env.checkUUID(env.upload))
+	http.HandleFunc("/create/", env.checkUUID(env.create))
+	http.HandleFunc("/search", env.checkUUID(env.search))
+	http.HandleFunc("/display", env.checkUUID(displayFiles))
+	http.HandleFunc("/download/", env.checkUUID(checkPath(download)))
 	http.ListenAndServe(":8000", nil)
 }

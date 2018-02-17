@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"fmt"
@@ -13,24 +13,26 @@ var isAlphaNum = regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString
 var isEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
 var isUUID = regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[8|9|a|A|b|B][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$").MatchString
 
-// the validPair struct is used to store boh the tag and the value
+// ValidPair is used to store boh the tag and the value
 // of a field within the User Struct
-type validPair struct {
+type ValidPair struct {
 	tag   string
 	value string
 }
 
-type validationError struct {
+// ValidationError is the default type for handling custom validation errors
+type ValidationError struct {
 	s string
 }
 
-func (e validationError) Error() string {
+// Define how the ValidationError is output
+func (e ValidationError) Error() string {
 	return e.s
 }
 
-// load the field names and tags into the valid map[string]string
-func parseValid(u *User) map[string]validPair {
-	valid := make(map[string]validPair)
+// ParseValid loads the field names and tags into the valid map[string]string
+func ParseValid(u *User) map[string]ValidPair {
+	valid := make(map[string]ValidPair)
 	t := reflect.TypeOf(*u)
 	v := reflect.ValueOf(*u)
 	val := reflect.Indirect(reflect.ValueOf(u))
@@ -41,7 +43,7 @@ func parseValid(u *User) map[string]validPair {
 			continue
 		}
 		temp := fmt.Sprint(v.Field(i).Interface())
-		valid[field] = validPair{
+		valid[field] = ValidPair{
 			tag:   fieldName.Tag.Get("valid"),
 			value: temp,
 		}
@@ -51,15 +53,15 @@ func parseValid(u *User) map[string]validPair {
 
 // ValidateUser will validate the User struct to ensure it is correct
 func ValidateUser(u *User) (bool, error) {
-	v := parseValid(u)
-	result, err := validate(v)
+	v := ParseValid(u)
+	result, err := Validate(v)
 	return result, err
 }
 
-// used to validate the different fields
-func validate(v map[string]validPair) (bool, error) {
+// Validate checks that the different fields are valid
+func Validate(v map[string]ValidPair) (bool, error) {
 	valid := true
-	var err validationError
+	var err ValidationError
 	for field := range v {
 		switch {
 		case strings.Contains(v[field].tag, "req") && v[field].value == "":
