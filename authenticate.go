@@ -1,4 +1,4 @@
-package models
+package webAppGo
 
 import (
 	"log"

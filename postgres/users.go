@@ -1,20 +1,12 @@
-package models
+package sqlite
 
-import "golang.org/x/crypto/bcrypt"
-
-// User contains the basic information on a given user for signing up
-type User struct {
-	UUID     string            `valid:"uuid"`
-	Fname    string            `valid:"req,alpha"`
-	Lname    string            `valid:"req,alpha"`
-	Username string            `valid:"req,alph-num"`
-	Email    string            `valid:"req,email"`
-	Password string            `valid:"req"`
-	Errors   map[string]string `valid:"-"`
-}
+import (
+	"github.com/hamster2020/webAppGo"
+	"golang.org/x/crypto/bcrypt"
+)
 
 // SaveUser saves a user as a record to the users table in the db
-func (db *DB) SaveUser(u *User) error {
+func (db *DB) SaveUser(u *webAppGo.User) error {
 	_, err := db.Exec(createUsersTable)
 	if err != nil {
 		return err
@@ -27,7 +19,7 @@ func (db *DB) SaveUser(u *User) error {
 }
 
 // DeleteUser deletes a user record from the users table in the db
-func (db *DB) DeleteUser(u *User) error {
+func (db *DB) DeleteUser(u *webAppGo.User) error {
 	_, err := db.Exec(createUsersTable)
 	if err != nil {
 		return err
@@ -40,7 +32,7 @@ func (db *DB) DeleteUser(u *User) error {
 }
 
 // UpdateUser saves a User struct to the db
-func (db *DB) UpdateUser(u *User) error {
+func (db *DB) UpdateUser(u *webAppGo.User) error {
 	err := db.DeleteUser(u)
 	if err != nil {
 		return err
@@ -53,16 +45,16 @@ func (db *DB) UpdateUser(u *User) error {
 }
 
 // GetUserFromUserID retrieves a user record from the db, given the userid
-func (db *DB) GetUserFromUserID(userid string) *User {
+func (db *DB) GetUserFromUserID(userid string) *webAppGo.User {
 	var uid, fn, ln, un, em, pass string
 	rows, err := db.Query(selectUserFromTable, userid)
 	if err != nil {
-		return &User{}
+		return &webAppGo.User{}
 	}
 	for rows.Next() {
 		rows.Scan(&uid, &fn, &ln, &un, &em, &pass)
 	}
-	return &User{
+	return &webAppGo.User{
 		Username: un,
 		Fname:    fn,
 		Lname:    ln,
@@ -73,7 +65,7 @@ func (db *DB) GetUserFromUserID(userid string) *User {
 }
 
 // UserExists is used to check if a user/password combination exist in the db
-func (db *DB) UserExists(u *User) (bool, string) {
+func (db *DB) UserExists(u *webAppGo.User) (bool, string) {
 	var password, userid string
 	rows, err := db.Query(selectUsernamePasswordFromTable, u.Username)
 	if err != nil {

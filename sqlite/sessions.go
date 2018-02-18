@@ -1,22 +1,14 @@
-package models
+package sqlite
 
 import (
 	"net/http"
 	"time"
+
+	"github.com/hamster2020/webAppGo"
 )
 
-// Session is a type for storing User Sessions
-type Session struct {
-	SessionID string
-	UserID    string
-	Time      int
-}
-
-// Timeout variable is used to determine if the session should timeout (in seconds)
-var Timeout = 300
-
-// SaveSession saves a user session to the cache/db.sqlite3 db
-func (db *DB) SaveSession(s *Session) error {
+// SaveSession saves a user session to the db.sqlite3 db
+func (db *DB) SaveSession(s *webAppGo.Session) error {
 	_, err := db.Exec(createSessionsTable)
 	if err != nil {
 		return err
@@ -29,17 +21,17 @@ func (db *DB) SaveSession(s *Session) error {
 }
 
 // GetSessionFromSessionID retrieves a session from the db, given a session id
-func (db *DB) GetSessionFromSessionID(sessionid string) *Session {
+func (db *DB) GetSessionFromSessionID(sessionid string) *webAppGo.Session {
 	var sid, uid string
 	var time int
 	rows, err := db.Query(selectSessionFromTable, sessionid)
 	if err != nil {
-		return &Session{}
+		return &webAppGo.Session{}
 	}
 	for rows.Next() {
 		rows.Scan(&sid, &uid, &time)
 	}
-	return &Session{
+	return &webAppGo.Session{
 		SessionID: sid,
 		UserID:    uid,
 		Time:      time,
@@ -69,7 +61,7 @@ func (db *DB) IsSessionValid(res http.ResponseWriter, sessionid string) (bool, s
 		rows.Scan(&sid, &uid, &tm)
 	}
 	lastActivity := int(time.Now().Unix()) - tm
-	if lastActivity > Timeout {
+	if lastActivity > webAppGo.Timeout {
 		db.DeleteSession(res, sessionid)
 		return false, ""
 	}
@@ -77,4 +69,21 @@ func (db *DB) IsSessionValid(res http.ResponseWriter, sessionid string) (bool, s
 		return true, sid
 	}
 	return false, ""
+}
+
+// SetSession creates a session for a user vie secure cookies
+func (db *DB) SetSession(s *webAppGo.Session, res http.ResponseWriter) {
+	value := map[string]string{
+		"uuid": s.SessionID,
+	}
+	db.SaveSession(s)
+	encoded, err := webAppGo.CookieHandler.Encode("session", value)
+	if err == nil {
+		cookie := &http.Cookie{
+			Name:  "session",
+			Value: encoded,
+			Path:  "/",
+		}
+		http.SetCookie(res, cookie)
+	}
 }
