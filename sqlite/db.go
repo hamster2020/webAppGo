@@ -54,11 +54,13 @@ func NewDB(dataSourceDriver, dataSourceName string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	//  log.Println("sqlite/db.go: Successfully opened pool of db connections from SQLite3 db")
 
 	err = db.Ping()
 	if err != nil {
 		return nil, err
 	}
+	//  log.Println("sqlite/db.go: Established successful connection from SQLite db")
 
 	return &DB{db}, nil
 }

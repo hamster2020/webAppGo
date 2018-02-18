@@ -1,15 +1,8 @@
-package main
+package web
 
+/*
 import (
-	"bytes"
-	"io"
-	"mime/multipart"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"os"
-	"strings"
-	"testing"
 	"time"
 
 	"github.com/hamster2020/webAppGo"
@@ -97,13 +90,14 @@ func (mdb *mockDB) SetSession(s *webAppGo.Session, res http.ResponseWriter) {
 
 }
 
+
 // main.go tests
 func TestView(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/view/test", nil)
-	env := Env{db: &mockDB{}}
+	env := Env{DB: &mockDB{}}
 
-	http.HandlerFunc(env.checkUUID(checkPath(env.view))).ServeHTTP(res, req)
+	http.HandlerFunc(env.CheckUUID(CheckPath(env.View))).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 200 {
 		t.Errorf("obtained invald status, received response: \n%v", *res)
@@ -113,9 +107,9 @@ func TestView(t *testing.T) {
 func TestEdit(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/edit/test", nil)
-	env := Env{db: &mockDB{}}
+	env := Env{DB: &mockDB{}}
 
-	http.HandlerFunc(env.checkUUID(checkPath(env.edit))).ServeHTTP(res, req)
+	http.HandlerFunc(env.CheckUUID(CheckPath(env.Edit))).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 200 {
 		t.Errorf("obtained invald status, received response: \n%v", *res)
@@ -127,9 +121,9 @@ func TestSave(t *testing.T) {
 	form.Add("body", "testing testing 123")
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/save/test", strings.NewReader(form.Encode()))
-	env := Env{db: &mockDB{}}
+	env := Env{DB: &mockDB{}}
 
-	http.HandlerFunc(env.checkUUID(checkPath(env.save))).ServeHTTP(res, req)
+	http.HandlerFunc(env.CheckUUID(CheckPath(env.Save))).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 302 {
 		t.Errorf("obtained invald status, received response: \n%v", *res)
@@ -139,9 +133,9 @@ func TestSave(t *testing.T) {
 func TestUpload(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/upload", nil)
 	res := httptest.NewRecorder()
-	env := Env{db: &mockDB{}}
+	env := Env{DB: &mockDB{}}
 
-	http.HandlerFunc(env.checkUUID(upload)).ServeHTTP(res, req)
+	http.HandlerFunc(env.CheckUUID(Upload)).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 200 {
 		t.Errorf("obtained invalid status, received responsed: \n%v", *res)
@@ -173,7 +167,7 @@ func TestUpload(t *testing.T) {
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	res = httptest.NewRecorder()
 
-	http.HandlerFunc(env.checkUUID(upload)).ServeHTTP(res, req)
+	http.HandlerFunc(env.CheckUUID(Upload)).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 200 {
 		t.Errorf("invalid status code, received response: \n%v", *res)
@@ -183,9 +177,9 @@ func TestUpload(t *testing.T) {
 func TestIndexPage(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
 	res := httptest.NewRecorder()
-	env := Env{db: &mockDB{}}
+	env := Env{DB: &mockDB{}}
 
-	http.HandlerFunc(env.indexPage).ServeHTTP(res, req)
+	http.HandlerFunc(env.IndexPage).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 302 {
 		t.Errorf("invalid response status, received response: \n%v", *res)
@@ -199,11 +193,12 @@ func TestLogin(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/login", strings.NewReader(form.Encode()))
 	req.PostForm = form
 	res := httptest.NewRecorder()
-	env := Env{db: &mockDB{}}
+	env := Env{DB: &mockDB{}}
 
-	http.HandlerFunc(env.login).ServeHTTP(res, req)
+	http.HandlerFunc(env.Login).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 302 {
 		t.Errorf("invalid status code, response: \n%v", req.Form)
 	}
 }
+*/

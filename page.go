@@ -16,7 +16,7 @@ func (p Page) SaveToCache() error {
 	if strings.Contains(p.Title, " ") {
 		p.Title = strings.Replace(p.Title, " ", "_", -1)
 	}
-	f := "../../cache/" + p.Title + ".txt"
+	f := "~/go/src/github.com/hamster2020/webAppGo/cache/" + p.Title + ".txt"
 	err := ioutil.WriteFile(f, p.Body, 0600)
 	if err != nil {
 		return err
@@ -26,7 +26,7 @@ func (p Page) SaveToCache() error {
 
 // LoadPageFromCache is for loading webpages from a file
 func LoadPageFromCache(title string) (*Page, error) {
-	f := "../../cache/" + title + ".txt"
+	f := "~/go/src/github.com/hamster2020/webAppGo/cache/" + title + ".txt"
 	body, err := ioutil.ReadFile(f)
 	if err != nil {
 		return nil, err
