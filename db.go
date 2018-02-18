@@ -18,7 +18,7 @@ type Datastore interface {
 	UpdateUser(*User) error
 	GetUserFromUserID(string) *User
 	UserExists(*User) (bool, string)
-	CheckUser(username string) bool
+	CheckUser(string) bool
 
 	// sessions.go db methods
 	SaveSession(*Session) error

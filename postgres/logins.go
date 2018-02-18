@@ -10,11 +10,7 @@ import (
 
 // SaveLogin saves the login info to the db
 func (db *DB) SaveLogin(login *webAppGo.Login) error {
-	_, err := db.Exec(createLoginsTable)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(insertIntoLoginsTable, login.IP, login.UserName, login.Timestamp, login.Attempt)
+	_, err := db.Exec(insertIntoLoginsTable, login.IP, login.UserName, login.Timestamp, login.Attempt)
 	if err != nil {
 		return err
 	}
@@ -24,10 +20,6 @@ func (db *DB) SaveLogin(login *webAppGo.Login) error {
 // CheckUserLoginAttempts checks to see if the number of failed login attempts is
 // greater than the alotted amount per unit time for a given username.
 func (db *DB) CheckUserLoginAttempts(username string) bool {
-	_, err := db.Exec(createLoginsTable)
-	if err != nil {
-		log.Fatal(err)
-	}
 	tm := int(time.Now().Unix()) - webAppGo.LoginAttemptTime
 	rows, err := db.Query(selectRecentUsernamesFromLoginsTable, username, strconv.Itoa(tm))
 	if err != nil {

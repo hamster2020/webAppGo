@@ -58,5 +58,25 @@ func NewDB(dataSourceDriver, dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 
+	_, err = db.Exec(createPagesTable)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(createUsersTable)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(createSessionsTable)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(createLoginsTable)
+	if err != nil {
+		return nil, err
+	}
+
 	return &DB{db}, nil
 }

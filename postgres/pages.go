@@ -14,11 +14,7 @@ func (db *DB) SavePage(p *webAppGo.Page) error {
 	if strings.Contains(p.Title, " ") {
 		p.Title = strings.Replace(p.Title, " ", "_", -1)
 	}
-	_, err := db.Exec(createPagesTable)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(insertIntoPagesTable, p.Title, p.Body, timestamp)
+	_, err := db.Exec(insertIntoPagesTable, p.Title, p.Body, timestamp)
 	if err != nil {
 		return err
 	}

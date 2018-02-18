@@ -9,11 +9,7 @@ import (
 
 // SaveSession saves a user session to the db.sqlite3 db
 func (db *DB) SaveSession(s *webAppGo.Session) error {
-	_, err := db.Exec(createSessionsTable)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(insertIntoSessionsTable, s.SessionID, s.UserID, s.Time)
+	_, err := db.Exec(insertIntoSessionsTable, s.SessionID, s.UserID, s.Time)
 	if err != nil {
 		return err
 	}
@@ -40,8 +36,6 @@ func (db *DB) GetSessionFromSessionID(sessionid string) *webAppGo.Session {
 
 // DeleteSession removes the session cookie
 func (db *DB) DeleteSession(res http.ResponseWriter, sessionid string) error {
-	//	clearCookie(res, "session")
-	db.Exec(createSessionsTable)
 	_, err := db.Exec(deleteSessionFromTable, sessionid)
 	if err != nil {
 		return err
