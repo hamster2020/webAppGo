@@ -45,11 +45,11 @@ func (db *DB) UpdateUser(u *webAppGo.User) error {
 }
 
 // GetUserFromUserID retrieves a user record from the db, given the userid
-func (db *DB) GetUserFromUserID(userid string) *webAppGo.User {
+func (db *DB) GetUserFromUserID(userid string) (*webAppGo.User, error) {
 	var uid, fn, ln, un, em, pass string
 	rows, err := db.Query(selectUserFromTable, userid)
 	if err != nil {
-		return &webAppGo.User{}
+		return &webAppGo.User{}, err
 	}
 	for rows.Next() {
 		rows.Scan(&uid, &fn, &ln, &un, &em, &pass)
@@ -61,38 +61,38 @@ func (db *DB) GetUserFromUserID(userid string) *webAppGo.User {
 		Email:    em,
 		UUID:     uid,
 		Password: pass,
-	}
+	}, nil
 }
 
 // UserExists is used to check if a user/password combination exist in the db
-func (db *DB) UserExists(u *webAppGo.User) (bool, string) {
+func (db *DB) UserExists(u *webAppGo.User) (bool, string, error) {
 	var password, userid string
 	rows, err := db.Query(selectUsernamePasswordFromTable, u.Username)
 	if err != nil {
-		return false, ""
+		return false, "", err
 	}
 	for rows.Next() {
 		rows.Scan(&userid, &password)
 	}
 	pwHashMatch := bcrypt.CompareHashAndPassword([]byte(password), []byte(u.Password))
 	if userid != "" && pwHashMatch == nil {
-		return true, userid
+		return true, userid, nil
 	}
-	return false, ""
+	return false, "", nil
 }
 
 // CheckUser checks if a given username is in the users table in the db
-func (db *DB) CheckUser(username string) bool {
+func (db *DB) CheckUser(username string) (bool, error) {
 	var un string
 	rows, err := db.Query(selectUsernameFromTable, username)
 	if err != nil {
-		return false
+		return false, err
 	}
 	for rows.Next() {
 		rows.Scan(&un)
 	}
 	if un == username {
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
 }

@@ -1,7 +1,6 @@
 package webAppGo
 
 import (
-	"log"
 	"os/exec"
 	"strings"
 
@@ -9,17 +8,20 @@ import (
 )
 
 // EncryptPass will encrypt the password with the bcrypt algorithm
-func EncryptPass(password string) string {
+func EncryptPass(password string) (string, error) {
 	pass := []byte(password)
-	hashpw, _ := bcrypt.GenerateFromPassword(pass, bcrypt.DefaultCost)
-	return string(hashpw)
+	hashpw, err := bcrypt.GenerateFromPassword(pass, bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashpw), nil
 }
 
 // UUID generates a universally unqiue ID
-func UUID() string {
+func UUID() (string, error) {
 	out, err := exec.Command("uuidgen").Output()
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
-	return strings.TrimSpace(string(out))
+	return strings.TrimSpace(string(out)), nil
 }

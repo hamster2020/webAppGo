@@ -71,10 +71,12 @@ func (env *Env) Create(res http.ResponseWriter, req *http.Request) {
 		err := p.SaveToCache()
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		err = env.DB.SavePage(p)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		http.Redirect(res, req, "/view/"+title, 302)
 		return

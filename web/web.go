@@ -19,12 +19,21 @@ var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:
 // IndexPage returns to the client the index.html page
 func (env *Env) IndexPage(res http.ResponseWriter, req *http.Request) {
 	//  log.Println("web/web.go: begining handling of IndexPage...")
-	sessionID := webAppGo.GetSessionIDFromCookie(req)
-	if foundSessionID, _ := env.DB.IsSessionValid(res, sessionID); foundSessionID == true {
+	sessionID, err := webAppGo.GetSessionIDFromCookie(req)
+	if err != nil {
+		http.Error(res, http.StatusText(500), 500)
+		return
+	}
+	foundSessionID, _, err := env.DB.IsSessionValid(res, sessionID)
+	if err != nil {
+		http.Error(res, err.Error(), 500)
+		return
+	}
+	if foundSessionID == true {
 		http.Redirect(res, req, "/home", 302)
 		return
 	}
-	msg := webAppGo.GetMsg(res, req, "msg")
+	msg, _ := webAppGo.GetMsg(res, req, "msg")
 	var u = &webAppGo.User{}
 	u.Errors = make(map[string]string)
 	if msg != "" {
@@ -41,9 +50,18 @@ func (env *Env) IndexPage(res http.ResponseWriter, req *http.Request) {
 // HomePage is a function hanlder for when the user successfully sets up a session
 func (env *Env) HomePage(res http.ResponseWriter, req *http.Request) {
 	//  log.Println("web/web.go: begining handling of HomePage...")
-	sessionID := webAppGo.GetSessionIDFromCookie(req)
-	session := env.DB.GetSessionFromSessionID(sessionID)
-	u := env.DB.GetUserFromUserID(session.UserID)
+	sessionID, err := webAppGo.GetSessionIDFromCookie(req)
+	if err != nil {
+		http.Error(res, err.Error(), 500)
+	}
+	session, err := env.DB.GetSessionFromSessionID(sessionID)
+	if err != nil {
+		http.Error(res, err.Error(), 500)
+	}
+	u, err := env.DB.GetUserFromUserID(session.UserID)
+	if err != nil {
+		http.Error(res, err.Error(), 500)
+	}
 	if session.UserID != "" {
 		//  log.Println("web/web.go: rendering the home page...")
 		Render(res, "home", u)
@@ -60,21 +78,28 @@ func (env *Env) Signup(res http.ResponseWriter, req *http.Request) {
 	case "GET":
 		u := &webAppGo.User{}
 		u.Errors = make(map[string]string)
-		u.Errors["lname"] = webAppGo.GetMsg(res, req, "lname")
-		u.Errors["fname"] = webAppGo.GetMsg(res, req, "fname")
-		u.Errors["username"] = webAppGo.GetMsg(res, req, "username")
-		u.Errors["email"] = webAppGo.GetMsg(res, req, "email")
-		u.Errors["password"] = webAppGo.GetMsg(res, req, "password")
+		u.Errors["lname"], _ = webAppGo.GetMsg(res, req, "lname")
+		u.Errors["fname"], _ = webAppGo.GetMsg(res, req, "fname")
+		u.Errors["username"], _ = webAppGo.GetMsg(res, req, "username")
+		u.Errors["email"], _ = webAppGo.GetMsg(res, req, "email")
+		u.Errors["password"], _ = webAppGo.GetMsg(res, req, "password")
 		Render(res, "signup", u)
 	case "POST":
-		n := env.DB.CheckUser(req.FormValue("userName"))
+		n, err := env.DB.CheckUser(req.FormValue("userName"))
+		if err != nil {
+			http.Error(res, err.Error(), 500)
+		}
 		if n == true {
 			webAppGo.SetMsg(res, "username", "User already exists. Please enter a unqiue user name!")
 			http.Redirect(res, req, "/signup", 302)
 			return
 		}
+		uuid, err := webAppGo.UUID()
+		if err != nil {
+			http.Error(res, err.Error(), 500)
+		}
 		u := &webAppGo.User{
-			UUID:     webAppGo.UUID(),
+			UUID:     uuid,
 			Fname:    req.FormValue("fName"),
 			Lname:    req.FormValue("lName"),
 			Email:    req.FormValue("email"),
@@ -105,7 +130,10 @@ func (env *Env) Signup(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 		if result == true {
-			u.Password = webAppGo.EncryptPass(u.Password)
+			u.Password, err = webAppGo.EncryptPass(u.Password)
+			if err != nil {
+				http.Error(res, err.Error(), 500)
+			}
 			env.DB.SaveUser(u)
 			http.Redirect(res, req, "/", 302)
 			return
@@ -134,9 +162,10 @@ func Render(res http.ResponseWriter, name string, data interface{}) {
 		"deurlize": func(s string) string { return strings.Replace(s, "_", " ", -1) },
 	}
 	//  log.Println("web/web.go: parsing GLOB...")
-	tmpl, err := template.New(name).Funcs(funcMap).ParseGlob("../../templates/*.html")
+	tmpl, err := template.New(name).Funcs(funcMap).ParseGlob("../../ui/templates/*.html")
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	//  log.Println("web/web.go: Executing template...")
 	tmpl.ExecuteTemplate(res, name, data)
@@ -145,8 +174,15 @@ func Render(res http.ResponseWriter, name string, data interface{}) {
 // CheckUUID checks to see if the client has a cookie with a valid session (loged in)
 func (env *Env) CheckUUID(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		sessionID := webAppGo.GetSessionIDFromCookie(req)
-		if foundSessionID, _ := env.DB.IsSessionValid(res, sessionID); foundSessionID == true {
+		sessionID, err := webAppGo.GetSessionIDFromCookie(req)
+		if err != nil {
+			http.Error(res, err.Error(), 500)
+		}
+		foundSessionID, _, err := env.DB.IsSessionValid(res, sessionID)
+		if err != nil {
+			http.Error(res, err.Error(), 500)
+		}
+		if foundSessionID == true {
 			fn(res, req)
 			return
 		}

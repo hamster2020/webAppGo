@@ -5,7 +5,7 @@ import (
 )
 
 // Datastore interface uses its interface-implementation feature to set up
-// a clean implementation of dependency-injection
+// a clean implementation of dependency-injection for the web methods
 type Datastore interface {
 	// pages.go db methods
 	SavePage(*Page) error
@@ -16,21 +16,21 @@ type Datastore interface {
 	SaveUser(*User) error
 	DeleteUser(*User) error
 	UpdateUser(*User) error
-	GetUserFromUserID(string) *User
-	UserExists(*User) (bool, string)
-	CheckUser(string) bool
+	GetUserFromUserID(string) (*User, error)
+	UserExists(*User) (bool, string, error)
+	CheckUser(string) (bool, error)
 
 	// sessions.go db methods
 	SaveSession(*Session) error
-	GetSessionFromSessionID(string) *Session
+	GetSessionFromSessionID(string) (*Session, error)
 	DeleteSession(http.ResponseWriter, string) error
-	IsSessionValid(http.ResponseWriter, string) (bool, string)
+	IsSessionValid(http.ResponseWriter, string) (bool, string, error)
 
 	// logins.go db methods
 	SaveLogin(*Login) error
-	CheckUserLoginAttempts(string) bool
-	CheckIPLoginAttempts(string) bool
+	CheckUserLoginAttempts(string) (bool, error)
+	CheckIPLoginAttempts(string) (bool, error)
 
 	// cookie.go db methods
-	SetSession(*Session, http.ResponseWriter)
+	SetSession(*Session, http.ResponseWriter) error
 }

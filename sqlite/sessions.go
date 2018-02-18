@@ -17,12 +17,12 @@ func (db *DB) SaveSession(s *webAppGo.Session) error {
 }
 
 // GetSessionFromSessionID retrieves a session from the db, given a session id
-func (db *DB) GetSessionFromSessionID(sessionid string) *webAppGo.Session {
+func (db *DB) GetSessionFromSessionID(sessionid string) (*webAppGo.Session, error) {
 	var sid, uid string
 	var time int
 	rows, err := db.Query(selectSessionFromTable, sessionid)
 	if err != nil {
-		return &webAppGo.Session{}
+		return &webAppGo.Session{}, err
 	}
 	for rows.Next() {
 		rows.Scan(&sid, &uid, &time)
@@ -31,7 +31,7 @@ func (db *DB) GetSessionFromSessionID(sessionid string) *webAppGo.Session {
 		SessionID: sid,
 		UserID:    uid,
 		Time:      time,
-	}
+	}, nil
 }
 
 // DeleteSession removes the session cookie
@@ -44,12 +44,12 @@ func (db *DB) DeleteSession(res http.ResponseWriter, sessionid string) error {
 }
 
 // IsSessionValid is used to check if a user/password combination exist in the db
-func (db *DB) IsSessionValid(res http.ResponseWriter, sessionid string) (bool, string) {
+func (db *DB) IsSessionValid(res http.ResponseWriter, sessionid string) (bool, string, error) {
 	var sid, uid string
 	var tm int
 	rows, err := db.Query(selectSessionFromTable, sessionid)
 	if err != nil {
-		return false, ""
+		return false, "", err
 	}
 	for rows.Next() {
 		rows.Scan(&sid, &uid, &tm)
@@ -57,16 +57,16 @@ func (db *DB) IsSessionValid(res http.ResponseWriter, sessionid string) (bool, s
 	lastActivity := int(time.Now().Unix()) - tm
 	if lastActivity > webAppGo.Timeout {
 		db.DeleteSession(res, sessionid)
-		return false, ""
+		return false, "", nil
 	}
 	if sid != "" {
-		return true, sid
+		return true, sid, nil
 	}
-	return false, ""
+	return false, "", nil
 }
 
 // SetSession creates a session for a user vie secure cookies
-func (db *DB) SetSession(s *webAppGo.Session, res http.ResponseWriter) {
+func (db *DB) SetSession(s *webAppGo.Session, res http.ResponseWriter) error {
 	value := map[string]string{
 		"uuid": s.SessionID,
 	}
@@ -79,5 +79,8 @@ func (db *DB) SetSession(s *webAppGo.Session, res http.ResponseWriter) {
 			Path:  "/",
 		}
 		http.SetCookie(res, cookie)
+		return nil
+	} else {
+		return err
 	}
 }

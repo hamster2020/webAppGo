@@ -22,6 +22,7 @@ func Upload(res http.ResponseWriter, req *http.Request) {
 		err := req.ParseMultipartForm(100000)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		m := req.MultipartForm
 		files := m.File["myfiles"]
@@ -35,6 +36,7 @@ func Upload(res http.ResponseWriter, req *http.Request) {
 			f, err := os.Create("../../files/" + files[i].Filename)
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusInternalServerError)
+				return
 			}
 			defer f.Close()
 			if err != nil {

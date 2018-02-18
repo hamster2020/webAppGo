@@ -11,24 +11,52 @@ import (
 func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		sessionID := webAppGo.GetSessionIDFromCookie(req)
-		session := env.DB.GetSessionFromSessionID(sessionID)
-		u := env.DB.GetUserFromUserID(session.UserID)
+		sessionID, err := webAppGo.GetSessionIDFromCookie(req)
+		if err != nil {
+			http.Error(res, http.StatusText(500), 500)
+			return
+		}
+		session, err := env.DB.GetSessionFromSessionID(sessionID)
+		if err != nil {
+			http.Error(res, http.StatusText(500), 500)
+			return
+		}
+		u, err := env.DB.GetUserFromUserID(session.UserID)
+		if err != nil {
+			http.Error(res, http.StatusText(500), 500)
+			return
+		}
 		u.Errors = make(map[string]string)
-		u.Errors["lname"] = webAppGo.GetMsg(res, req, "lname")
-		u.Errors["fname"] = webAppGo.GetMsg(res, req, "fname")
-		u.Errors["username"] = webAppGo.GetMsg(res, req, "username")
-		u.Errors["email"] = webAppGo.GetMsg(res, req, "email")
-		u.Errors["password"] = webAppGo.GetMsg(res, req, "password")
+		u.Errors["lname"], _ = webAppGo.GetMsg(res, req, "lname")
+		u.Errors["fname"], _ = webAppGo.GetMsg(res, req, "fname")
+		u.Errors["username"], _ = webAppGo.GetMsg(res, req, "username")
+		u.Errors["email"], _ = webAppGo.GetMsg(res, req, "email")
+		u.Errors["password"], _ = webAppGo.GetMsg(res, req, "password")
 		Render(res, "account", u)
 	case "POST":
 
-		sessionID := webAppGo.GetSessionIDFromCookie(req)
-		session := env.DB.GetSessionFromSessionID(sessionID)
-		u := env.DB.GetUserFromUserID(session.UserID)
+		sessionID, err := webAppGo.GetSessionIDFromCookie(req)
+		if err != nil {
+			http.Error(res, http.StatusText(500), 500)
+			return
+		}
+		session, err := env.DB.GetSessionFromSessionID(sessionID)
+		if err != nil {
+			http.Error(res, http.StatusText(500), 500)
+			return
+		}
+		u, err := env.DB.GetUserFromUserID(session.UserID)
+		if err != nil {
+			http.Error(res, http.StatusText(500), 500)
+			return
+		}
 
 		if u.Username != req.FormValue("userName") {
-			n := env.DB.CheckUser(req.FormValue("userName"))
+			n, err := env.DB.CheckUser(req.FormValue("userName"))
+			if err != nil {
+				http.Error(res, http.StatusText(500), 500)
+				return
+			}
 			if n == true {
 				webAppGo.SetMsg(res, "username", "User already exists. Please enter a unqiue user name!")
 				http.Redirect(res, req, "/account", 302)
@@ -68,7 +96,11 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 		}
 
 		if result == true {
-			u.Password = webAppGo.EncryptPass(u.Password)
+			u.Password, err = webAppGo.EncryptPass(u.Password)
+			if err != nil {
+				http.Error(res, err.Error(), 500)
+				return
+			}
 			env.DB.UpdateUser(u)
 			http.Redirect(res, req, "/", 302)
 			return
@@ -79,12 +111,25 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 
 // DeleteAccount will delete the User from the db and redirect them to the home page
 func (env *Env) DeleteAccount(res http.ResponseWriter, req *http.Request) {
-	sessionID := webAppGo.GetSessionIDFromCookie(req)
-	session := env.DB.GetSessionFromSessionID(sessionID)
-	user := env.DB.GetUserFromUserID(session.UserID)
-	err := env.DB.DeleteUser(user)
+	sessionID, err := webAppGo.GetSessionIDFromCookie(req)
+	if err != nil {
+		http.Error(res, http.StatusText(500), 500)
+		return
+	}
+	session, err := env.DB.GetSessionFromSessionID(sessionID)
+	if err != nil {
+		http.Error(res, http.StatusText(500), 500)
+		return
+	}
+	user, err := env.DB.GetUserFromUserID(session.UserID)
+	if err != nil {
+		http.Error(res, http.StatusText(500), 500)
+		return
+	}
+	err = env.DB.DeleteUser(user)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	env.DB.DeleteSession(res, sessionID)
 	http.Redirect(res, req, "/", 302)

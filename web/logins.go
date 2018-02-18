@@ -19,7 +19,11 @@ func (env *Env) Login(res http.ResponseWriter, req *http.Request) {
 	redirect := "/"
 	if u.Username != "" && u.Password != "" {
 
-		ok := env.DB.CheckUserLoginAttempts(u.Username)
+		ok, err := env.DB.CheckUserLoginAttempts(u.Username)
+		if err != nil {
+			http.Error(res, http.StatusText(500), 500)
+			return
+		}
 		if ok != true {
 			webAppGo.SetMsg(res, "msg", "Too many incorrect login attempts were made for the provided username, try again in 10 minutes!")
 			http.Redirect(res, req, "/", 302)
@@ -29,9 +33,14 @@ func (env *Env) Login(res http.ResponseWriter, req *http.Request) {
 		ip, err := GetIP(req)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		ok = env.DB.CheckIPLoginAttempts(ip)
+		ok, err = env.DB.CheckIPLoginAttempts(ip)
+		if err != nil {
+			http.Error(res, http.StatusText(500), 500)
+			return
+		}
 		if ok != true {
 			webAppGo.SetMsg(res, "msg", "Too many incorrect login attempts were made from you, try again in 10 minutes!")
 			http.Redirect(res, req, "/", 302)
@@ -44,10 +53,19 @@ func (env *Env) Login(res http.ResponseWriter, req *http.Request) {
 			Timestamp: int(time.Now().Unix()),
 		}
 
-		b, userID := env.DB.UserExists(u)
+		b, userID, err := env.DB.UserExists(u)
+		if err != nil {
+			http.Error(res, http.StatusText(500), 500)
+			return
+		}
 		if b == true {
+			uuid, err := webAppGo.UUID()
+			if err != nil {
+				http.Error(res, http.StatusText(500), 500)
+				return
+			}
 			s := &webAppGo.Session{
-				SessionID: webAppGo.UUID(),
+				SessionID: uuid,
 				UserID:    userID,
 				Time:      int(time.Now().Unix()),
 			}
@@ -68,7 +86,11 @@ func (env *Env) Login(res http.ResponseWriter, req *http.Request) {
 
 // Logout merely clears the session cookie and redirects to the index endnode
 func (env *Env) Logout(res http.ResponseWriter, req *http.Request) {
-	sessionID := webAppGo.GetSessionIDFromCookie(req)
+	sessionID, err := webAppGo.GetSessionIDFromCookie(req)
+	if err != nil {
+		http.Error(res, http.StatusText(500), 500)
+		return
+	}
 	env.DB.DeleteSession(res, sessionID)
 	webAppGo.ClearCookie(res, "session")
 	http.Redirect(res, req, "/", 302)

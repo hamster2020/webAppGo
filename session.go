@@ -6,13 +6,6 @@ import (
 	"github.com/gorilla/securecookie"
 )
 
-// Session is a type for storing User Sessions
-type Session struct {
-	SessionID string
-	UserID    string
-	Time      int
-}
-
 // Timeout variable is used to determine if the session should timeout (in seconds)
 var Timeout = 300
 
@@ -22,16 +15,28 @@ var CookieHandler = securecookie.New(
 	securecookie.GenerateRandomKey(32),
 )
 
+// Session is a type for storing User Sessions
+type Session struct {
+	SessionID string
+	UserID    string
+	Time      int
+}
+
 // GetSessionIDFromCookie extracts the username from the session cookie in the http response
-func GetSessionIDFromCookie(req *http.Request) (uuid string) {
+func GetSessionIDFromCookie(req *http.Request) (string, error) {
+	var uuid string
 	cookie, err := req.Cookie("session")
 	if err == nil {
 		cookieValue := make(map[string]string)
 		if err = CookieHandler.Decode("session", cookie.Value, &cookieValue); err == nil {
 			uuid = cookieValue["uuid"]
+		} else {
+			return "", err
 		}
+	} else {
+		return "", err
 	}
-	return uuid
+	return uuid, nil
 }
 
 // ClearCookie removes the given cookie from the client's browser
@@ -47,20 +52,25 @@ func ClearCookie(res http.ResponseWriter, name string) {
 
 // GetMsg attempts to extract a secure cookie name from the request header,
 // decodes it, and clears it in the response header
-func GetMsg(res http.ResponseWriter, req *http.Request, name string) (msg string) {
+func GetMsg(res http.ResponseWriter, req *http.Request, name string) (string, error) {
+	var msg string
 	if cookie, err := req.Cookie(name); err == nil {
 		cookieValue := make(map[string]string)
 		if err = CookieHandler.Decode(name, cookie.Value, &cookieValue); err == nil {
 			msg = cookieValue[name]
 			ClearCookie(res, name)
+		} else {
+			return "", err
 		}
+	} else {
+		return "", err
 	}
-	return msg
+	return msg, nil
 }
 
 // SetMsg encodes a name-msg pair into a cookie and
 // sends it in the response header.
-func SetMsg(res http.ResponseWriter, name string, msg string) {
+func SetMsg(res http.ResponseWriter, name string, msg string) error {
 	value := map[string]string{
 		name: msg,
 	}
@@ -71,5 +81,8 @@ func SetMsg(res http.ResponseWriter, name string, msg string) {
 			Path:  "/",
 		}
 		http.SetCookie(res, cookie)
+		return nil
+	} else {
+		return err
 	}
 }
