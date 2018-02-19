@@ -12,8 +12,9 @@ import (
 
 // Env stores environemnt and application scope data to be easily passed to http handlers
 type Env struct {
-	DB    webAppGo.Datastore
-	Cache webAppGo.PageCache
+	DB           webAppGo.Datastore
+	Cache        webAppGo.PageCache
+	TemplatePath string
 }
 
 var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:\w+:]+]?)$`)
@@ -34,11 +35,11 @@ func (env *Env) IndexPage(res http.ResponseWriter, req *http.Request) {
 	if msg != "" {
 		u.Errors["message"] = msg
 		log.Println("web/web.go: rendering the signin page with errors...")
-		Render(res, "signin", u)
+		env.Render(res, "signin", u)
 	} else {
 		u := &webAppGo.User{}
 		log.Println("web/web.go: rendering the signin page...")
-		Render(res, "signin", u)
+		env.Render(res, "signin", u)
 	}
 }
 
@@ -53,7 +54,7 @@ func (env *Env) HomePage(res http.ResponseWriter, req *http.Request) {
 	}
 	if session.UserID != "" {
 		//  log.Println("web/web.go: rendering the home page...")
-		Render(res, "home", u)
+		env.Render(res, "home", u)
 	} else {
 		//  log.Println("web/web.go: redirecting client to the index page to login first...")
 		webAppGo.SetMsg(res, "msg", "Please login first!")
@@ -72,7 +73,7 @@ func (env *Env) Signup(res http.ResponseWriter, req *http.Request) {
 		u.Errors["username"], _ = webAppGo.GetMsg(res, req, "username")
 		u.Errors["email"], _ = webAppGo.GetMsg(res, req, "email")
 		u.Errors["password"], _ = webAppGo.GetMsg(res, req, "password")
-		Render(res, "signup", u)
+		env.Render(res, "signup", u)
 	case "POST":
 		n, err := env.DB.CheckUser(req.FormValue("userName"))
 		if err != nil {
@@ -140,18 +141,19 @@ func (env *Env) Search(res http.ResponseWriter, req *http.Request) {
 		http.Redirect(res, req, "/view/"+sValue, 302)
 		return
 	}
-	Render(res, "search", &webAppGo.Page{Title: strings.Title(sValue)})
+	env.Render(res, "search", &webAppGo.Page{Title: strings.Title(sValue)})
 }
 
 // Render is used to write html templates to the response writer
-func Render(res http.ResponseWriter, name string, data interface{}) {
+func (env *Env) Render(res http.ResponseWriter, name string, data interface{}) {
 	//  log.Println("web/web.go: beginning handling of Render...")
 	funcMap := template.FuncMap{
 		"urlize":   func(s string) string { return strings.Replace(s, " ", "_", -1) },
 		"deurlize": func(s string) string { return strings.Replace(s, "_", " ", -1) },
 	}
 	//  log.Println("web/web.go: parsing GLOB...")
-	tmpl, err := template.New(name).Funcs(funcMap).ParseGlob("../../ui/templates/*.html")
+
+	tmpl, err := template.New(name).Funcs(funcMap).ParseGlob(env.TemplatePath + "*.html")
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

@@ -1,10 +1,7 @@
 package web
 
 import (
-	"net"
 	"net/http"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/hamster2020/webAppGo"
@@ -94,17 +91,20 @@ func (env *Env) Logout(res http.ResponseWriter, req *http.Request) {
 
 // GetIP is only used for auto-generating a fake IP since this app is not live
 func GetIP(req *http.Request) (string, error) {
-	ip, _, err := net.SplitHostPort(req.RemoteAddr)
-	if err != nil {
-		return "", err
-	}
-	if ip == "::1" {
-		cmd := "ip route get 8.8.8.8 | awk '{print $NF; exit}'"
-		out, err := exec.Command("bash", "-c", cmd).Output()
+	return "192.168.0.13", nil
+	/*
+		ip, _, err := net.SplitHostPort(req.RemoteAddr)
 		if err != nil {
 			return "", err
 		}
-		ip = strings.TrimSpace(string(out))
-	}
-	return ip, nil
+		if ip == "::1" {
+			cmd := "ip route get 8.8.8.8 | awk '{print $NF; exit}'"
+			out, err := exec.Command("bash", "-c", cmd).Output()
+			if err != nil {
+				return "", err
+			}
+			ip = strings.TrimSpace(string(out))
+		}
+		return ip, nil
+	*/
 }

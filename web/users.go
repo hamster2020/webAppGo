@@ -24,7 +24,7 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 		u.Errors["username"], _ = webAppGo.GetMsg(res, req, "username")
 		u.Errors["email"], _ = webAppGo.GetMsg(res, req, "email")
 		u.Errors["password"], _ = webAppGo.GetMsg(res, req, "password")
-		Render(res, "account", u)
+		env.Render(res, "account", u)
 	case "POST":
 
 		sessionID := webAppGo.GetSessionIDFromCookie(req)

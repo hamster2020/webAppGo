@@ -11,12 +11,12 @@ import (
 )
 
 // Upload is a function that allows the user to upload files to the server
-func Upload(res http.ResponseWriter, req *http.Request) {
+func (env *Env) Upload(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
 		title := "Upload"
 		p := &webAppGo.Page{Title: title}
-		Render(res, "upload", p)
+		env.Render(res, "upload", p)
 
 	case "POST":
 		err := req.ParseMultipartForm(100000)
@@ -55,12 +55,12 @@ func Upload(res http.ResponseWriter, req *http.Request) {
 }
 
 // DisplayFiles will query all files in ./files/ and display them to the user
-func DisplayFiles(res http.ResponseWriter, req *http.Request) {
+func (env *Env) DisplayFiles(res http.ResponseWriter, req *http.Request) {
 	files, err := ioutil.ReadDir("../../files/")
 	if err != nil {
 		log.Fatal(err)
 	}
-	Render(res, "displayFiles", files)
+	env.Render(res, "displayFiles", files)
 }
 
 // Download will download the selected file to the client

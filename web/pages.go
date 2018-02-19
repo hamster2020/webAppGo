@@ -23,7 +23,7 @@ func (env *Env) View(res http.ResponseWriter, req *http.Request, title string) {
 	if strings.Contains(p.Title, "_") {
 		p.Title = strings.Replace(p.Title, "_", " ", -1)
 	}
-	Render(res, "view", p)
+	env.Render(res, "view", p)
 }
 
 // Edit is a function handler for handling http requests
@@ -42,7 +42,7 @@ func (env *Env) Edit(res http.ResponseWriter, req *http.Request, title string) {
 	if strings.Contains(p.Title, "_") {
 		p.Title = strings.Replace(p.Title, "_", " ", -1)
 	}
-	Render(res, "edit", p)
+	env.Render(res, "edit", p)
 }
 
 // Save is a function handler for making HTTP post requests of Pages to the server
@@ -66,7 +66,7 @@ func (env *Env) Create(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
 		p := &webAppGo.Page{}
-		Render(res, "create", p)
+		env.Render(res, "create", p)
 	case "POST":
 		title := strings.Title(req.FormValue("title"))
 		if strings.Contains(title, " ") {
