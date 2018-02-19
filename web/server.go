@@ -5,7 +5,7 @@ import "net/http"
 // NewServer returns a server with predefined routing
 func NewServer(env *Env) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../../static"))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../../ui/static"))))
 	mux.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("../../files"))))
 	mux.HandleFunc("/", env.IndexPage)
 	mux.HandleFunc("/login", env.Login)
