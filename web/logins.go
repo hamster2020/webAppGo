@@ -86,11 +86,7 @@ func (env *Env) Login(res http.ResponseWriter, req *http.Request) {
 
 // Logout merely clears the session cookie and redirects to the index endnode
 func (env *Env) Logout(res http.ResponseWriter, req *http.Request) {
-	sessionID, err := webAppGo.GetSessionIDFromCookie(req)
-	if err != nil {
-		http.Error(res, http.StatusText(500), 500)
-		return
-	}
+	sessionID := webAppGo.GetSessionIDFromCookie(req)
 	env.DB.DeleteSession(res, sessionID)
 	webAppGo.ClearCookie(res, "session")
 	http.Redirect(res, req, "/", 302)

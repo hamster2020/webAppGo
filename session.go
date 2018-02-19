@@ -23,7 +23,7 @@ type Session struct {
 }
 
 // GetSessionIDFromCookie extracts the username from the session cookie in the http response
-func GetSessionIDFromCookie(req *http.Request) (string, error) {
+func GetSessionIDFromCookie(req *http.Request) string {
 	var uuid string
 	cookie, err := req.Cookie("session")
 	if err == nil {
@@ -31,12 +31,12 @@ func GetSessionIDFromCookie(req *http.Request) (string, error) {
 		if err = CookieHandler.Decode("session", cookie.Value, &cookieValue); err == nil {
 			uuid = cookieValue["uuid"]
 		} else {
-			return "", err
+			return ""
 		}
 	} else {
-		return "", err
+		return ""
 	}
-	return uuid, nil
+	return uuid
 }
 
 // ClearCookie removes the given cookie from the client's browser

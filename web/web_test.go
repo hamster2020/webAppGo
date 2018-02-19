@@ -1,6 +1,5 @@
 package web
 
-/*
 import (
 	"net/http"
 	"time"
@@ -9,6 +8,10 @@ import (
 )
 
 type mockDB struct{}
+type mockCache struct {
+	//	SaveToCacheFunc   func() error
+	//	LoadPageFromCache func(string) (*webAppGo.Page, error)
+}
 
 // Datastore pages methods
 func (mdb *mockDB) SavePage(p *webAppGo.Page) error {
@@ -21,6 +24,16 @@ func (mdb *mockDB) LoadPage(p string) (*webAppGo.Page, error) {
 
 func (mdb *mockDB) PageExists(p string) (bool, error) {
 	return true, nil
+}
+
+func (mc *mockCache) SaveToCache() error {
+	return nil
+	//return mc.SaveToCacheFunc()
+}
+
+func (mc *mockCache) LoadPageFromCache(title string) (*webAppGo.Page, error) {
+	return &webAppGo.Page{Title: title, Body: []byte("testing testing 123")}, nil
+	//return mc.LoadPageFromCache(title)
 }
 
 // Datastore users methods
@@ -44,16 +57,17 @@ func (mdb *mockDB) UpdateUser(u *webAppGo.User) error {
 	return nil
 }
 
-func (mdb *mockDB) GetUserFromUserID(userid string) *webAppGo.User {
-	return &webAppGo.User{UUID: userid, Username: "test", Fname: "test", Lname: "test", Email: "test@email.com", Password: webAppGo.EncryptPass("test")}
+func (mdb *mockDB) GetUserFromUserID(userid string) (*webAppGo.User, error) {
+	pw, _ := webAppGo.EncryptPass("test")
+	return &webAppGo.User{UUID: userid, Username: "test", Fname: "test", Lname: "test", Email: "test@email.com", Password: pw}, nil
 }
 
-func (mdb *mockDB) UserExists(u *webAppGo.User) (bool, string) {
-	return true, u.UUID
+func (mdb *mockDB) UserExists(u *webAppGo.User) (bool, string, error) {
+	return true, u.UUID, nil
 }
 
-func (mdb *mockDB) CheckUser(username string) bool {
-	return true
+func (mdb *mockDB) CheckUser(username string) (bool, error) {
+	return true, nil
 }
 
 // Datastore sessions methods
@@ -61,16 +75,16 @@ func (mdb *mockDB) SaveSession(s *webAppGo.Session) error {
 	return nil
 }
 
-func (mdb *mockDB) GetSessionFromSessionID(sid string) *webAppGo.Session {
-	return &webAppGo.Session{SessionID: sid, UserID: "test", Time: int(time.Now().Unix())}
+func (mdb *mockDB) GetSessionFromSessionID(sid string) (*webAppGo.Session, error) {
+	return &webAppGo.Session{SessionID: sid, UserID: "test", Time: int(time.Now().Unix())}, nil
 }
 
 func (mdb *mockDB) DeleteSession(res http.ResponseWriter, sid string) error {
 	return nil
 }
 
-func (mdb *mockDB) IsSessionValid(res http.ResponseWriter, sid string) (bool, string) {
-	return true, ""
+func (mdb *mockDB) IsSessionValid(res http.ResponseWriter, sid string) (bool, string, error) {
+	return true, "", nil
 }
 
 // Datastore logins methods
@@ -78,19 +92,19 @@ func (mdb *mockDB) SaveLogin(login *webAppGo.Login) error {
 	return nil
 }
 
-func (mdb *mockDB) CheckUserLoginAttempts(userid string) bool {
-	return true
+func (mdb *mockDB) CheckUserLoginAttempts(userid string) (bool, error) {
+	return true, nil
 }
 
-func (mdb *mockDB) CheckIPLoginAttempts(ip string) bool {
-	return true
+func (mdb *mockDB) CheckIPLoginAttempts(ip string) (bool, error) {
+	return true, nil
 }
 
-func (mdb *mockDB) SetSession(s *webAppGo.Session, res http.ResponseWriter) {
-
+func (mdb *mockDB) SetSession(s *webAppGo.Session, res http.ResponseWriter) error {
+	return nil
 }
 
-
+/*
 // main.go tests
 func TestView(t *testing.T) {
 	res := httptest.NewRecorder()

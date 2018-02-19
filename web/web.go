@@ -2,6 +2,7 @@ package web
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -11,25 +12,24 @@ import (
 
 // Env stores environemnt and application scope data to be easily passed to http handlers
 type Env struct {
-	DB webAppGo.Datastore
+	DB    webAppGo.Datastore
+	Cache webAppGo.Cachestore
 }
 
 var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:\w+:]+]?)$`)
 
 // IndexPage returns to the client the index.html page
 func (env *Env) IndexPage(res http.ResponseWriter, req *http.Request) {
-	//  log.Println("web/web.go: begining handling of IndexPage...")
-	sessionID, err := webAppGo.GetSessionIDFromCookie(req)
-	if err != nil {
-		http.Error(res, http.StatusText(500), 500)
-		return
-	}
+	log.Println("web/web.go: begining handling of IndexPage...")
+	sessionID := webAppGo.GetSessionIDFromCookie(req)
 	foundSessionID, _, err := env.DB.IsSessionValid(res, sessionID)
 	if err != nil {
+		log.Println("Error in web/web.go: server was unable confirm a valid sessionID from client!")
 		http.Error(res, err.Error(), 500)
 		return
 	}
 	if foundSessionID == true {
+		log.Println("web/web.go: client has a valid sessionID, redirecting to the user's home page")
 		http.Redirect(res, req, "/home", 302)
 		return
 	}
@@ -38,11 +38,11 @@ func (env *Env) IndexPage(res http.ResponseWriter, req *http.Request) {
 	u.Errors = make(map[string]string)
 	if msg != "" {
 		u.Errors["message"] = msg
-		//  log.Println("web/web.go: rendering the signin page with errors...")
+		log.Println("web/web.go: rendering the signin page with errors...")
 		Render(res, "signin", u)
 	} else {
 		u := &webAppGo.User{}
-		//  log.Println("web/web.go: rendering the signin page...")
+		log.Println("web/web.go: rendering the signin page...")
 		Render(res, "signin", u)
 	}
 }
@@ -50,14 +50,8 @@ func (env *Env) IndexPage(res http.ResponseWriter, req *http.Request) {
 // HomePage is a function hanlder for when the user successfully sets up a session
 func (env *Env) HomePage(res http.ResponseWriter, req *http.Request) {
 	//  log.Println("web/web.go: begining handling of HomePage...")
-	sessionID, err := webAppGo.GetSessionIDFromCookie(req)
-	if err != nil {
-		http.Error(res, err.Error(), 500)
-	}
-	session, err := env.DB.GetSessionFromSessionID(sessionID)
-	if err != nil {
-		http.Error(res, err.Error(), 500)
-	}
+	sessionID := webAppGo.GetSessionIDFromCookie(req)
+	session := env.DB.GetSessionFromSessionID(sessionID)
 	u, err := env.DB.GetUserFromUserID(session.UserID)
 	if err != nil {
 		http.Error(res, err.Error(), 500)
@@ -174,10 +168,7 @@ func Render(res http.ResponseWriter, name string, data interface{}) {
 // CheckUUID checks to see if the client has a cookie with a valid session (loged in)
 func (env *Env) CheckUUID(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		sessionID, err := webAppGo.GetSessionIDFromCookie(req)
-		if err != nil {
-			http.Error(res, err.Error(), 500)
-		}
+		sessionID := webAppGo.GetSessionIDFromCookie(req)
 		foundSessionID, _, err := env.DB.IsSessionValid(res, sessionID)
 		if err != nil {
 			http.Error(res, err.Error(), 500)

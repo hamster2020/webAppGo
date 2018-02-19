@@ -9,7 +9,7 @@ import (
 
 // View is a function handler for handling http requests
 func (env *Env) View(res http.ResponseWriter, req *http.Request, title string) {
-	p, err := webAppGo.LoadPageFromCache(title)
+	p, err := env.Cache.LoadPageFromCache(title)
 	if err != nil {
 		p, _ = env.DB.LoadPage(title)
 	}
@@ -28,7 +28,7 @@ func (env *Env) View(res http.ResponseWriter, req *http.Request, title string) {
 
 // Edit is a function handler for handling http requests
 func (env *Env) Edit(res http.ResponseWriter, req *http.Request, title string) {
-	p, err := webAppGo.LoadPageFromCache(title)
+	p, err := env.Cache.LoadPageFromCache(title)
 	if err != nil {
 		p, _ = env.DB.LoadPage(title)
 	}
@@ -50,8 +50,14 @@ func (env *Env) Save(res http.ResponseWriter, req *http.Request, title string) {
 	title = strings.Replace(strings.Title(title), " ", "_", -1)
 	body := []byte(req.FormValue("body"))
 	page := &webAppGo.Page{Title: title, Body: body}
-	page.SaveToCache()
-	env.DB.SavePage(page)
+	err := env.Cache.SaveToCache(page)
+	if err != nil {
+		http.Error(res, err.Error(), 500)
+	}
+	err = env.DB.SavePage(page)
+	if err != nil {
+		http.Error(res, err.Error(), 500)
+	}
 	http.Redirect(res, req, "/view/"+title, http.StatusFound)
 }
 
@@ -68,7 +74,7 @@ func (env *Env) Create(res http.ResponseWriter, req *http.Request) {
 		}
 		body := req.FormValue("body")
 		p := &webAppGo.Page{Title: strings.Title(title), Body: []byte(body)}
-		err := p.SaveToCache()
+		err := env.Cache.SaveToCache(p)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return

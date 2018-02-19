@@ -11,16 +11,8 @@ import (
 func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		sessionID, err := webAppGo.GetSessionIDFromCookie(req)
-		if err != nil {
-			http.Error(res, http.StatusText(500), 500)
-			return
-		}
-		session, err := env.DB.GetSessionFromSessionID(sessionID)
-		if err != nil {
-			http.Error(res, http.StatusText(500), 500)
-			return
-		}
+		sessionID := webAppGo.GetSessionIDFromCookie(req)
+		session := env.DB.GetSessionFromSessionID(sessionID)
 		u, err := env.DB.GetUserFromUserID(session.UserID)
 		if err != nil {
 			http.Error(res, http.StatusText(500), 500)
@@ -35,16 +27,8 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 		Render(res, "account", u)
 	case "POST":
 
-		sessionID, err := webAppGo.GetSessionIDFromCookie(req)
-		if err != nil {
-			http.Error(res, http.StatusText(500), 500)
-			return
-		}
-		session, err := env.DB.GetSessionFromSessionID(sessionID)
-		if err != nil {
-			http.Error(res, http.StatusText(500), 500)
-			return
-		}
+		sessionID := webAppGo.GetSessionIDFromCookie(req)
+		session := env.DB.GetSessionFromSessionID(sessionID)
 		u, err := env.DB.GetUserFromUserID(session.UserID)
 		if err != nil {
 			http.Error(res, http.StatusText(500), 500)
@@ -111,16 +95,8 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 
 // DeleteAccount will delete the User from the db and redirect them to the home page
 func (env *Env) DeleteAccount(res http.ResponseWriter, req *http.Request) {
-	sessionID, err := webAppGo.GetSessionIDFromCookie(req)
-	if err != nil {
-		http.Error(res, http.StatusText(500), 500)
-		return
-	}
-	session, err := env.DB.GetSessionFromSessionID(sessionID)
-	if err != nil {
-		http.Error(res, http.StatusText(500), 500)
-		return
-	}
+	sessionID := webAppGo.GetSessionIDFromCookie(req)
+	session := env.DB.GetSessionFromSessionID(sessionID)
 	user, err := env.DB.GetUserFromUserID(session.UserID)
 	if err != nil {
 		http.Error(res, http.StatusText(500), 500)

@@ -21,12 +21,12 @@ func (db *DB) SaveSession(s *webAppGo.Session) error {
 }
 
 // GetSessionFromSessionID retrieves a session from the db, given a session id
-func (db *DB) GetSessionFromSessionID(sessionid string) (*webAppGo.Session, error) {
+func (db *DB) GetSessionFromSessionID(sessionid string) *webAppGo.Session {
 	var sid, uid string
 	var time int
 	rows, err := db.Query(selectSessionFromTable, sessionid)
 	if err != nil {
-		return &webAppGo.Session{}, err
+		return &webAppGo.Session{}
 	}
 	for rows.Next() {
 		rows.Scan(&sid, &uid, &time)
@@ -35,7 +35,7 @@ func (db *DB) GetSessionFromSessionID(sessionid string) (*webAppGo.Session, erro
 		SessionID: sid,
 		UserID:    uid,
 		Time:      time,
-	}, nil
+	}
 }
 
 // DeleteSession removes the session cookie
