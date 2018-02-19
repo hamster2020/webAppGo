@@ -18,7 +18,7 @@ func main() {
 	}
 	log.Println("main.go: db connection established!")
 
-	c := cache.NewCache()
+	c := cache.NewCache("../../cache")
 
 	env := &web.Env{DB: db, Cache: c}
 

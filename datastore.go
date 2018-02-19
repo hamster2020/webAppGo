@@ -24,7 +24,7 @@ type Datastore interface {
 	SaveSession(*Session) error
 	GetSessionFromSessionID(string) *Session
 	DeleteSession(http.ResponseWriter, string) error
-	IsSessionValid(http.ResponseWriter, string) (bool, string, error)
+	IsSessionValid(http.ResponseWriter, string) (bool, string)
 
 	// logins.go db methods
 	SaveLogin(*Login) error

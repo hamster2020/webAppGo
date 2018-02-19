@@ -13,7 +13,7 @@ import (
 // Env stores environemnt and application scope data to be easily passed to http handlers
 type Env struct {
 	DB    webAppGo.Datastore
-	Cache webAppGo.Cachestore
+	Cache webAppGo.PageCache
 }
 
 var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:\w+:]+]?)$`)
@@ -22,12 +22,7 @@ var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:
 func (env *Env) IndexPage(res http.ResponseWriter, req *http.Request) {
 	log.Println("web/web.go: begining handling of IndexPage...")
 	sessionID := webAppGo.GetSessionIDFromCookie(req)
-	foundSessionID, _, err := env.DB.IsSessionValid(res, sessionID)
-	if err != nil {
-		log.Println("Error in web/web.go: server was unable confirm a valid sessionID from client!")
-		http.Error(res, err.Error(), 500)
-		return
-	}
+	foundSessionID, _ := env.DB.IsSessionValid(res, sessionID)
 	if foundSessionID == true {
 		log.Println("web/web.go: client has a valid sessionID, redirecting to the user's home page")
 		http.Redirect(res, req, "/home", 302)
@@ -169,10 +164,7 @@ func Render(res http.ResponseWriter, name string, data interface{}) {
 func (env *Env) CheckUUID(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		sessionID := webAppGo.GetSessionIDFromCookie(req)
-		foundSessionID, _, err := env.DB.IsSessionValid(res, sessionID)
-		if err != nil {
-			http.Error(res, err.Error(), 500)
-		}
+		foundSessionID, _ := env.DB.IsSessionValid(res, sessionID)
 		if foundSessionID == true {
 			fn(res, req)
 			return

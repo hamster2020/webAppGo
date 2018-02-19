@@ -2,16 +2,16 @@ package web
 
 import (
 	"net/http"
+	"net/http/httptest"
+	"testing"
 	"time"
 
 	"github.com/hamster2020/webAppGo"
+	"github.com/hamster2020/webAppGo/cache"
 )
 
 type mockDB struct{}
-type mockCache struct {
-	//	SaveToCacheFunc   func() error
-	//	LoadPageFromCache func(string) (*webAppGo.Page, error)
-}
+type mockCache struct{}
 
 // Datastore pages methods
 func (mdb *mockDB) SavePage(p *webAppGo.Page) error {
@@ -28,12 +28,10 @@ func (mdb *mockDB) PageExists(p string) (bool, error) {
 
 func (mc *mockCache) SaveToCache() error {
 	return nil
-	//return mc.SaveToCacheFunc()
 }
 
 func (mc *mockCache) LoadPageFromCache(title string) (*webAppGo.Page, error) {
 	return &webAppGo.Page{Title: title, Body: []byte("testing testing 123")}, nil
-	//return mc.LoadPageFromCache(title)
 }
 
 // Datastore users methods
@@ -75,16 +73,16 @@ func (mdb *mockDB) SaveSession(s *webAppGo.Session) error {
 	return nil
 }
 
-func (mdb *mockDB) GetSessionFromSessionID(sid string) (*webAppGo.Session, error) {
-	return &webAppGo.Session{SessionID: sid, UserID: "test", Time: int(time.Now().Unix())}, nil
+func (mdb *mockDB) GetSessionFromSessionID(sid string) *webAppGo.Session {
+	return &webAppGo.Session{SessionID: sid, UserID: "test", Time: int(time.Now().Unix())}
 }
 
 func (mdb *mockDB) DeleteSession(res http.ResponseWriter, sid string) error {
 	return nil
 }
 
-func (mdb *mockDB) IsSessionValid(res http.ResponseWriter, sid string) (bool, string, error) {
-	return true, "", nil
+func (mdb *mockDB) IsSessionValid(res http.ResponseWriter, sid string) (bool, string) {
+	return true, ""
 }
 
 // Datastore logins methods
@@ -104,12 +102,11 @@ func (mdb *mockDB) SetSession(s *webAppGo.Session, res http.ResponseWriter) erro
 	return nil
 }
 
-/*
 // main.go tests
 func TestView(t *testing.T) {
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/view/test", nil)
-	env := Env{DB: &mockDB{}}
+	req, _ := http.NewRequest("GET", "/view/Test_Page", nil)
+	env := Env{DB: &mockDB{}, Cache: cache.NewCache("../../cache")}
 
 	http.HandlerFunc(env.CheckUUID(CheckPath(env.View))).ServeHTTP(res, req)
 
@@ -118,6 +115,7 @@ func TestView(t *testing.T) {
 	}
 }
 
+/*
 func TestEdit(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/edit/test", nil)

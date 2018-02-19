@@ -44,12 +44,12 @@ func (db *DB) DeleteSession(res http.ResponseWriter, sessionid string) error {
 }
 
 // IsSessionValid is used to check if a user/password combination exist in the db
-func (db *DB) IsSessionValid(res http.ResponseWriter, sessionid string) (bool, string, error) {
+func (db *DB) IsSessionValid(res http.ResponseWriter, sessionid string) (bool, string) {
 	var sid, uid string
 	var tm int
 	rows, err := db.Query(selectSessionFromTable, sessionid)
 	if err != nil {
-		return false, "", err
+		return false, ""
 	}
 	for rows.Next() {
 		rows.Scan(&sid, &uid, &tm)
@@ -57,12 +57,12 @@ func (db *DB) IsSessionValid(res http.ResponseWriter, sessionid string) (bool, s
 	lastActivity := int(time.Now().Unix()) - tm
 	if lastActivity > webAppGo.Timeout {
 		db.DeleteSession(res, sessionid)
-		return false, "", nil
+		return false, ""
 	}
 	if sid != "" {
-		return true, sid, nil
+		return true, sid
 	}
-	return false, "", nil
+	return false, ""
 }
 
 // SetSession creates a session for a user vie secure cookies
