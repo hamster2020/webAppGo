@@ -56,7 +56,7 @@ func (env *Env) Upload(res http.ResponseWriter, req *http.Request) {
 
 // DisplayFiles will query all files in ./files/ and display them to the user
 func (env *Env) DisplayFiles(res http.ResponseWriter, req *http.Request) {
-	files, err := ioutil.ReadDir("../../files/")
+	files, err := ioutil.ReadDir(env.FilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -64,10 +64,10 @@ func (env *Env) DisplayFiles(res http.ResponseWriter, req *http.Request) {
 }
 
 // Download will download the selected file to the client
-func Download(res http.ResponseWriter, req *http.Request, title string) {
-	file, err := os.Open("../../files/" + title)
+func (env *Env) Download(res http.ResponseWriter, req *http.Request, title string) {
+	file, err := os.Open(env.FilePath)
 	if err != nil {
-		log.Fatal(err)
+
 	}
 	defer file.Close()
 

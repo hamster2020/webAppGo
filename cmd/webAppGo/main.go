@@ -20,7 +20,12 @@ func main() {
 
 	c := cache.NewCache("../../cache")
 
-	env := &web.Env{DB: db, Cache: c, TemplatePath: "../../ui/templates/"}
+	env := &web.Env{
+		DB:           db,
+		Cache:        c,
+		TemplatePath: "../../ui/templates/",
+		FilePath:     "../../files/",
+	}
 
 	log.Println("main.go: configuring server...")
 	mux := web.NewServer(env)

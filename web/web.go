@@ -15,6 +15,7 @@ type Env struct {
 	DB           webAppGo.Datastore
 	Cache        webAppGo.PageCache
 	TemplatePath string
+	FilePath     string
 }
 
 var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:\w+:]+]?)$`)

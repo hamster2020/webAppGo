@@ -6,7 +6,7 @@ import "net/http"
 func NewServer(env *Env) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../../ui/static"))))
-	mux.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("../../files"))))
+	mux.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir(env.FilePath))))
 	mux.HandleFunc("/", env.IndexPage)
 	mux.HandleFunc("/login", env.Login)
 	mux.HandleFunc("/logout", env.Logout)
@@ -21,7 +21,7 @@ func NewServer(env *Env) *http.ServeMux {
 	mux.HandleFunc("/create/", env.CheckUUID(env.Create))
 	mux.HandleFunc("/search", env.CheckUUID(env.Search))
 	mux.HandleFunc("/display", env.CheckUUID(env.DisplayFiles))
-	mux.HandleFunc("/download/", env.CheckUUID(CheckPath(Download)))
+	mux.HandleFunc("/download/", env.CheckUUID(CheckPath(env.Download)))
 
 	return mux
 }
