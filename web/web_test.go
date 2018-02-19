@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/hamster2020/webAppGo"
-	"github.com/hamster2020/webAppGo/cache"
 )
 
 type mockDB struct{}
-type mockCache struct{}
+type mockCache struct {
+	Path string
+}
 
 // Datastore pages methods
 func (mdb *mockDB) SavePage(p *webAppGo.Page) error {
@@ -26,7 +27,7 @@ func (mdb *mockDB) PageExists(p string) (bool, error) {
 	return true, nil
 }
 
-func (mc *mockCache) SaveToCache() error {
+func (mc *mockCache) SaveToCache(*webAppGo.Page) error {
 	return nil
 }
 
@@ -106,7 +107,7 @@ func (mdb *mockDB) SetSession(s *webAppGo.Session, res http.ResponseWriter) erro
 func TestView(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/view/Test_Page", nil)
-	env := Env{DB: &mockDB{}, Cache: cache.NewCache("../../cache")}
+	env := Env{DB: &mockDB{}, Cache: &mockCache{Path: "../../cache"}}
 
 	http.HandlerFunc(env.CheckUUID(CheckPath(env.View))).ServeHTTP(res, req)
 
