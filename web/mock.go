@@ -64,7 +64,10 @@ func (mdb *mockDB) UserExists(u *webAppGo.User) (bool, string, error) {
 }
 
 func (mdb *mockDB) CheckUser(username string) (bool, error) {
-	return true, nil
+	if username != "bobjoe13" {
+		return true, nil
+	}
+	return false, nil
 }
 
 // Datastore sessions methods

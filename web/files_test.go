@@ -78,8 +78,20 @@ func TestDisplayFiles(t *testing.T) {
 	}
 }
 
-/*
-func TestDownload(t *testing) {
+func TestDownload(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/download/test", nil)
+	res := httptest.NewRecorder()
 
+	env := &Env{
+		DB:           &mockDB{},
+		Cache:        &mockCache{Path: "../../cache"},
+		TemplatePath: "../ui/templates/",
+		FilePath:     "../files/",
+	}
+
+	http.HandlerFunc(env.CheckUUID(env.CheckPath(env.Download))).ServeHTTP(res, req)
+
+	if res.Result().StatusCode != 200 {
+		t.Errorf("invalid status code, received response: \n%v", res)
+	}
 }
-*/

@@ -11,10 +11,12 @@ import (
 func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
+		env.Log.V(1, "beginning handling of GET request for Account.")
 		sessionID := webAppGo.GetSessionIDFromCookie(req)
 		session := env.DB.GetSessionFromSessionID(sessionID)
 		u, err := env.DB.GetUserFromUserID(session.UserID)
 		if err != nil {
+			env.Log.V(1, "notifying client that an internal error occured. Error is related to  DB.GetUserFromUserID")
 			http.Error(res, http.StatusText(500), 500)
 			return
 		}
@@ -26,11 +28,12 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 		u.Errors["password"], _ = webAppGo.GetMsg(res, req, "password")
 		env.Render(res, "account", u)
 	case "POST":
-
+		env.Log.V(1, "beginning handling of POST request for Account.")
 		sessionID := webAppGo.GetSessionIDFromCookie(req)
 		session := env.DB.GetSessionFromSessionID(sessionID)
 		u, err := env.DB.GetUserFromUserID(session.UserID)
 		if err != nil {
+			env.Log.V(1, "notifying client that an internal error occured. Error is related to  DB.GetUserFromUserID.")
 			http.Error(res, http.StatusText(500), 500)
 			return
 		}
@@ -38,10 +41,12 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 		if u.Username != req.FormValue("userName") {
 			n, err := env.DB.CheckUser(req.FormValue("userName"))
 			if err != nil {
+				env.Log.V(1, "notifying client that an internal error occured. Error is related to  DB.CheckUser.")
 				http.Error(res, http.StatusText(500), 500)
 				return
 			}
 			if n == true {
+				env.Log.V(1, "Client is attempting to create a new user account where the username already exists.")
 				webAppGo.SetMsg(res, "username", "User already exists. Please enter a unqiue user name!")
 				http.Redirect(res, req, "/account", 302)
 				return
@@ -74,6 +79,7 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 		}
 
 		if req.FormValue("password") != req.FormValue("cpassword") {
+			env.Log.V(1, "The passwords that the client provided do not match.")
 			webAppGo.SetMsg(res, "password", "The passwords you entered do not match!")
 			http.Redirect(res, req, "/account", 302)
 			return
@@ -82,9 +88,11 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 		if result == true {
 			u.Password, err = webAppGo.EncryptPass(u.Password)
 			if err != nil {
+				env.Log.V(1, "notifying client that an internal error occured. Error is related to webAppGo.EncryptPass.")
 				http.Error(res, err.Error(), 500)
 				return
 			}
+			env.Log.V(1, "The requested updates to the specified user has been accepted. Rediecting to /.")
 			env.DB.UpdateUser(u)
 			http.Redirect(res, req, "/", 302)
 			return
@@ -95,18 +103,22 @@ func (env *Env) Account(res http.ResponseWriter, req *http.Request) {
 
 // DeleteAccount will delete the User from the db and redirect them to the home page
 func (env *Env) DeleteAccount(res http.ResponseWriter, req *http.Request) {
+	env.Log.V(1, "Beginning handling of DeleteAccount.")
 	sessionID := webAppGo.GetSessionIDFromCookie(req)
 	session := env.DB.GetSessionFromSessionID(sessionID)
 	user, err := env.DB.GetUserFromUserID(session.UserID)
 	if err != nil {
+		env.Log.V(1, "notifying client that an internal error occured. Error is related to DB.GetUserFromUserID.")
 		http.Error(res, http.StatusText(500), 500)
 		return
 	}
 	err = env.DB.DeleteUser(user)
 	if err != nil {
+		env.Log.V(1, "notifying client that an internal error occured. Error is related to DB.DeleteUser.")
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	env.DB.DeleteSession(res, sessionID)
+	env.Log.V(1, "successfully removed both username and session from db. Redirecting to /.")
 	http.Redirect(res, req, "/", 302)
 }

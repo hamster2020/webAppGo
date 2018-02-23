@@ -12,9 +12,15 @@ import (
 func TestView(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/view/test", nil)
-	env := Env{DB: &mockDB{}, Cache: &mockCache{Path: "../../cache"}, TemplatePath: "../ui/templates/"}
 
-	http.HandlerFunc(env.CheckUUID(CheckPath(env.View))).ServeHTTP(res, req)
+	env := Env{
+		DB:           &mockDB{},
+		Cache:        &mockCache{Path: "../../cache"},
+		TemplatePath: "../ui/templates/",
+		FilePath:     "../files",
+	}
+
+	http.HandlerFunc(env.CheckUUID(env.CheckPath(env.View))).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 200 {
 		t.Errorf("obtained invald status, received response: \n%v", *res)
@@ -26,7 +32,7 @@ func TestEdit(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/edit/test", nil)
 	env := Env{DB: &mockDB{}, Cache: &mockCache{Path: "../../cache"}, TemplatePath: "../ui/templates/"}
 
-	http.HandlerFunc(env.CheckUUID(CheckPath(env.Edit))).ServeHTTP(res, req)
+	http.HandlerFunc(env.CheckUUID(env.CheckPath(env.Edit))).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 200 {
 		t.Errorf("obtained invald status, received response: \n%v", *res)
@@ -38,9 +44,10 @@ func TestSave(t *testing.T) {
 	form.Add("body", "testing testing 123")
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/save/test", strings.NewReader(form.Encode()))
+	req.PostForm = form
 	env := Env{DB: &mockDB{}, Cache: &mockCache{Path: "../../cache"}, TemplatePath: "../ui/templates/"}
 
-	http.HandlerFunc(env.CheckUUID(CheckPath(env.Save))).ServeHTTP(res, req)
+	http.HandlerFunc(env.CheckUUID(env.CheckPath(env.Save))).ServeHTTP(res, req)
 
 	if res.Result().StatusCode != 302 {
 		t.Errorf("obtained invald status, received response: \n%v", *res)
