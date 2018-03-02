@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -18,6 +19,7 @@ var DataSourceName = "../../sqlite/db.sqlite3"
 // pages table
 var createPagesTable = "CREATE TABLE IF NOT EXISTS pages (title TEXT, body GLOB, timestamp TEXT)"
 var insertIntoPagesTable = "INSERT INTO pages (title, body, timestamp) VALUES (?, ?, ?)"
+var selectAllPagesFromTable = "SELECT * FROM pages"
 var selectPageFromTable = "SELECT * FROM pages WHERE title = ? ORDER BY timestamp DESC LIMIT 1"
 var selectTitleBodyFromTable = "SELECT title, body FROM pages WHERE title = ? ORDER BY timestamp DESC LIMIT 1"
 
@@ -80,5 +82,6 @@ func NewDB(dataSourceDriver, dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 
+	fmt.Println(db)
 	return &DB{db}, nil
 }

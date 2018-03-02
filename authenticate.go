@@ -1,11 +1,19 @@
 package webAppGo
 
 import (
-	"os/exec"
-	"strings"
+	"math/rand"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+// Seed the random number generator on start up
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+// letterRunes is used to sample random runes for the GenRandID function
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // EncryptPass will encrypt the password with the bcrypt algorithm
 func EncryptPass(password string) (string, error) {
@@ -17,11 +25,11 @@ func EncryptPass(password string) (string, error) {
 	return string(hashpw), nil
 }
 
-// UUID generates a universally unqiue ID
-func UUID() (string, error) {
-	out, err := exec.Command("uuidgen").Output()
-	if err != nil {
-		return "", err
+// GenRandID generates a random ID n digits long
+func GenRandID(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
-	return strings.TrimSpace(string(out)), nil
+	return string(b)
 }

@@ -7,11 +7,7 @@ import (
 
 // SaveUser saves a user as a record to the users table in the db
 func (db *DB) SaveUser(u *webAppGo.User) error {
-	_, err := db.Exec(createUsersTable)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(insertIntoUsersTable, u.UUID, u.Fname, u.Lname, u.Username, u.Email, u.Password)
+	_, err := db.Exec(insertIntoUsersTable, u.UserID, u.Fname, u.Lname, u.Username, u.Email, u.Password)
 	if err != nil {
 		return err
 	}
@@ -20,11 +16,7 @@ func (db *DB) SaveUser(u *webAppGo.User) error {
 
 // DeleteUser deletes a user record from the users table in the db
 func (db *DB) DeleteUser(u *webAppGo.User) error {
-	_, err := db.Exec(createUsersTable)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(deleteFromUsersTable, u.UUID)
+	_, err := db.Exec(deleteFromUsersTable, u.UserID)
 	if err != nil {
 		return err
 	}
@@ -59,7 +51,7 @@ func (db *DB) GetUserFromUserID(userid string) (*webAppGo.User, error) {
 		Fname:    fn,
 		Lname:    ln,
 		Email:    em,
-		UUID:     uid,
+		UserID:   uid,
 		Password: pass,
 	}, nil
 }

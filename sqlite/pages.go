@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -8,17 +9,30 @@ import (
 	"github.com/hamster2020/webAppGo"
 )
 
+// AllPages returns all pages from db
+func (db *DB) AllPages() ([]*webAppGo.Page, error) {
+	var name string
+	var body []byte
+	var pages []*webAppGo.Page
+	rows, err := db.Query(selectAllPagesFromTable)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		rows.Scan(&name, &body)
+		fmt.Println(name, body)
+		pages = append(pages, &webAppGo.Page{Title: name, Body: body})
+	}
+	return pages, nil
+}
+
 // SavePage is for saving pages to the db
 func (db *DB) SavePage(p *webAppGo.Page) error {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	if strings.Contains(p.Title, " ") {
 		p.Title = strings.Replace(p.Title, " ", "_", -1)
 	}
-	_, err := db.Exec(createPagesTable)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(insertIntoPagesTable, p.Title, p.Body, timestamp)
+	_, err := db.Exec(insertIntoPagesTable, p.Title, p.Body, timestamp)
 	if err != nil {
 		return err
 	}

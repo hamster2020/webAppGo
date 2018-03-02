@@ -65,12 +65,7 @@ func (env *Env) Login(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 		if b == true {
-			uuid, err := webAppGo.UUID()
-			if err != nil {
-				env.Log.V(1, "Notifying client that an internal error occured. Error is associated with weAppGo.UUID().")
-				http.Error(res, http.StatusText(500), 500)
-				return
-			}
+			uuid := webAppGo.GenRandID(32)
 			s := &webAppGo.Session{
 				SessionID: uuid,
 				UserID:    userID,

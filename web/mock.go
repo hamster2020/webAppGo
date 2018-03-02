@@ -13,6 +13,10 @@ type mockCache struct {
 }
 
 // Datastore pages methods
+func (mdb *mockDB) AllPages() ([]*webAppGo.Page, error) {
+	return nil, nil
+}
+
 func (mdb *mockDB) SavePage(p *webAppGo.Page) error {
 	return nil
 }
@@ -56,11 +60,11 @@ func (mdb *mockDB) UpdateUser(u *webAppGo.User) error {
 
 func (mdb *mockDB) GetUserFromUserID(userid string) (*webAppGo.User, error) {
 	pw, _ := webAppGo.EncryptPass("test")
-	return &webAppGo.User{UUID: userid, Username: "test", Fname: "test", Lname: "test", Email: "test@email.com", Password: pw}, nil
+	return &webAppGo.User{UserID: userid, Username: "test", Fname: "test", Lname: "test", Email: "test@email.com", Password: pw}, nil
 }
 
 func (mdb *mockDB) UserExists(u *webAppGo.User) (bool, string, error) {
-	return true, u.UUID, nil
+	return true, u.UserID, nil
 }
 
 func (mdb *mockDB) CheckUser(username string) (bool, error) {

@@ -8,6 +8,7 @@ import (
 // a clean implementation of dependency-injection for the web methods
 type Datastore interface {
 	// pages.go db methods
+	AllPages() ([]*Page, error)
 	SavePage(*Page) error
 	LoadPage(string) (*Page, error)
 	PageExists(string) (bool, error)

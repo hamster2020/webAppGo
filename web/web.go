@@ -114,13 +114,9 @@ func (env *Env) Signup(res http.ResponseWriter, req *http.Request) {
 			http.Redirect(res, req, "/signup", 302)
 			return
 		}
-		uuid, err := webAppGo.UUID()
-		if err != nil {
-			env.Log.V(1, "notifying client that an internal error occured, error is associated with webAppGo.UUID")
-			http.Error(res, err.Error(), 500)
-		}
+		uuid := webAppGo.GenRandID(32)
 		u := &webAppGo.User{
-			UUID:     uuid,
+			UserID:   uuid,
 			Fname:    req.FormValue("fName"),
 			Lname:    req.FormValue("lName"),
 			Email:    req.FormValue("email"),
