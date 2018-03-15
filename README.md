@@ -29,7 +29,7 @@
 
 ### The application was also designed with the following features:
 * **Dependency Injection:**
-  This application is broken up into several sub-packages, where the top-level sub-package contains several interfaces that are passed into the web and api sub-packages via *dependency injection*. This keeps the code flexible, decoupled, and easy to test different components in isolation.
+  This application is broken up into several sub-packages, where the top-level package contains several interfaces that are passed into the web and api sub-packages as a form of *dependency injection*. This keeps the code flexible, decoupled, and easy to test different components in isolation.
 * **Toggle-able Databases:**
   The db is handled with *dependency injection* by using a `Datastore` interface that is passed down into the `web` and `api` sub-packages. Two other sub-packages, `sqlite` and `postgres`, both implement the `Datastore` interface, which allows the developer to easily toggle between two different databases.   
 * **Environment Defined Variables:**
