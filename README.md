@@ -1,7 +1,7 @@
 # webAppGo
-###This is an simple web application implemented in solely in Go.
+### This is an simple web application implemented in solely in Go.
 
-###The features included in the application include:
+### The features included in the application include:
 * **Authentication**
   * password hashing with the *golang.org/x/crypto/bcrypt* package
   * `password` hash stored in `user` db table
@@ -31,7 +31,7 @@
 * **Dependency Injection**
   This application is broken up into several sub-packages, where the top-level sub-package contains several interfaces that are passed into the web and api sub-packages via *dependency injection*. This keeps the code flexible, decoupled, and easy to test different components in isolation.
 * **Toggle-able Databases**
-  The db is handled with dependency injection by using a `Datastore` interface that is passed down into the `web` and `api` sub-packages. Two other sub-packages, `sqlite` and `postgres`, both implement the `Datastore` interface, which allows the developer to easily toggle between two different databases.   
+  The db is handled with *dependency injection* by using a `Datastore` interface that is passed down into the `web` and `api` sub-packages. Two other sub-packages, `sqlite` and `postgres`, both implement the `Datastore` interface, which allows the developer to easily toggle between two different databases.   
 * **Environment Defined Variables**
   The environment variable is a struct which contains the different interfaces such as the `Datastore` and `Cachestore`, as well as other environment-wide variables such as the file path and logging settings.
 * **Custom Logging**
