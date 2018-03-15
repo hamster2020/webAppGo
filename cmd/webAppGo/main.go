@@ -16,6 +16,7 @@ func main() {
 	// set up and initialize environment variables
 	// dbType: choose either "sqlite" or "postgres"
 	// dbPath: choose either "../../sqlite/db.sqlite3" or "postgres://hamster2020:password@localhost/webappgo?sslmode=disable"
+	// logPath: provide "" to write log to console, otherwise provide the file path
 	dbType := "sqlite"
 	dbPath := "../../sqlite/db.sqlite3"
 	logPath := ""
@@ -38,7 +39,7 @@ func InitWebEnv(dbType, dbPath, logPath, cachePath, templatePath, filePath strin
 	var err error
 
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
-	logger := webAppGo.Logger{Level: 1, FilePath: logPath} //../../logs/"}
+	logger := webAppGo.Logger{Level: 1, FilePath: logPath}
 	logger.SetSource()
 
 	c := cache.NewCache(cachePath)
@@ -70,7 +71,7 @@ func InitApiEnv(dbType, dbPath, logPath, cachePath, templatePath, filePath strin
 	var err error
 
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
-	logger := webAppGo.Logger{Level: 1, FilePath: logPath} //../../logs/"}
+	logger := webAppGo.Logger{Level: 1, FilePath: logPath}
 	logger.SetSource()
 
 	c := cache.NewCache(cachePath)
