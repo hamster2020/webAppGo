@@ -20,6 +20,7 @@ func (env *Env) Upload(res http.ResponseWriter, req *http.Request) {
 		env.Render(res, "upload", p)
 
 	case "POST":
+		// parse files from multipartform
 		env.Log.V(1, "handling POST request for /upload")
 		err := req.ParseMultipartForm(100000)
 		if err != nil {
@@ -28,6 +29,8 @@ func (env *Env) Upload(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 		m := req.MultipartForm
+
+		// Loop through each file and save to filePath
 		files := m.File["myfiles"]
 		for i := range files {
 			file, err := files[i].Open()
@@ -56,13 +59,14 @@ func (env *Env) Upload(res http.ResponseWriter, req *http.Request) {
 			env.Log.V(1, "files successfully created, routing user to /view/FileName.")
 			http.Redirect(res, req, "/files/"+files[i].Filename, http.StatusFound)
 		}
+
 	default:
 		env.Log.V(1, "notifying client that the request type is not allowed.")
 		res.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-// DisplayFiles will query all files in ./files/ and display them to the user
+// DisplayFiles will query all files in the file path and display them to the user
 func (env *Env) DisplayFiles(res http.ResponseWriter, req *http.Request) {
 	env.Log.V(1, "beginning handling of DisplayFiles.")
 	files, err := ioutil.ReadDir(env.FilePath)

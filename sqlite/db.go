@@ -2,26 +2,26 @@ package sqlite
 
 import (
 	"database/sql"
-	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 // DataSourceDriver defines the driver type of the db
 // choose between "postgres" and "sqlite3"
-var DataSourceDriver = "sqlite3"
+// var DataSourceDriver = "sqlite3"
 
 // DataSourceName defines the connection details of the db
 // choose between "postgres://hamster2020:password@localhost/webappgo?sslmode=disable" and "cache/db.sqlite3"
-var DataSourceName = "../../sqlite/db.sqlite3"
+// var DataSourceName = "../../sqlite/db.sqlite3"
 
 // sql statements:
 // pages table
 var createPagesTable = "CREATE TABLE IF NOT EXISTS pages (title TEXT, body GLOB, timestamp TEXT)"
 var insertIntoPagesTable = "INSERT INTO pages (title, body, timestamp) VALUES (?, ?, ?)"
-var selectAllPagesFromTable = "SELECT * FROM pages"
-var selectPageFromTable = "SELECT * FROM pages WHERE title = ? ORDER BY timestamp DESC LIMIT 1"
+var selectAllPagesFromTable = "SELECT title, body FROM pages GROUP BY title"
+var selectPageFromTable = "SELECT title, body FROM pages WHERE title = ? ORDER BY timestamp DESC LIMIT 1"
 var selectTitleBodyFromTable = "SELECT title, body FROM pages WHERE title = ? ORDER BY timestamp DESC LIMIT 1"
+var deletePageFromTable = "DELETE FROM pages WHERE title=?"
 
 // users table
 var createUsersTable = "CREATE TABLE IF NOT EXISTS users (userid TEXT NOT NULL UNIQUE, firstname TEXT NOT NULL, lastname TEXT NOT NULL, username TEXT NOT NULL UNIQUE, email TEXT NOT NULL, password TEXT NOT NULL, PRIMARY KEY(userid))"
@@ -82,6 +82,5 @@ func NewDB(dataSourceDriver, dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 
-	fmt.Println(db)
 	return &DB{db}, nil
 }

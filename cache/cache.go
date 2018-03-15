@@ -2,6 +2,7 @@ package cache
 
 import (
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/hamster2020/webAppGo"
@@ -38,4 +39,14 @@ func (c *cache) LoadPageFromCache(title string) (*webAppGo.Page, error) {
 		return nil, err
 	}
 	return &webAppGo.Page{Title: title, Body: body}, nil
+}
+
+// DeletePageFromCache is for loading webpages from a file
+func (c *cache) DeletePageFromCache(title string) error {
+	f := c.Path + title + ".txt"
+	err := os.Remove(f)
+	if err != nil {
+		return err
+	}
+	return nil
 }

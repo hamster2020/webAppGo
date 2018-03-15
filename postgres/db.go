@@ -7,17 +7,19 @@ import (
 )
 
 // DataSourceDriver defines the driver type of the db
-var DataSourceDriver = "postgres"
+// var DataSourceDriver = "postgres"
 
 // DataSourceName defines the connection details of the db
-var DataSourceName = "postgres://hamster2020:password@localhost/webappgo?sslmode=disable"
+// var DataSourceName = "postgres://hamster2020:password@localhost/webappgo?sslmode=disable"
 
 // sql statements:
 // pages table
 var createPagesTable = "CREATE TABLE IF NOT EXISTS pages (title TEXT, body BYTEA, timestamp TEXT)"
 var insertIntoPagesTable = "INSERT INTO pages (title, body, timestamp) VALUES ($1, $2, $3)"
-var selectPageFromTable = "SELECT * FROM pages WHERE title = ? ORDER BY timestamp DESC LIMIT 1"
+var selectPageFromTable = "SELECT title, body FROM pages WHERE title = $1 ORDER BY timestamp DESC LIMIT 1"
+var selectAllPagesFromTable = "SELECT DISTINCT ON (title) title, body FROM pages"
 var selectTitleBodyFromTable = "SELECT title, body FROM pages WHERE title = $1 ORDER BY timestamp DESC LIMIT 1"
+var deletePageFromTable = "DELETE FROM pages WHERE title=$1"
 
 // users table
 var createUsersTable = "CREATE TABLE IF NOT EXISTS users (userid TEXT NOT NULL UNIQUE, firstname TEXT NOT NULL, lastname TEXT NOT NULL, username TEXT NOT NULL UNIQUE, email TEXT NOT NULL, password TEXT NOT NULL, PRIMARY KEY(userid))"

@@ -11,4 +11,5 @@ type Page struct {
 type PageCache interface {
 	SaveToCache(*Page) error
 	LoadPageFromCache(string) (*Page, error)
+	DeletePageFromCache(string) error
 }

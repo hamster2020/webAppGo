@@ -8,6 +8,22 @@ import (
 	"github.com/hamster2020/webAppGo"
 )
 
+// AllPages returns all pages from db
+func (db *DB) AllPages() ([]*webAppGo.Page, error) {
+	var name string
+	var body []byte
+	var pages []*webAppGo.Page
+	rows, err := db.Query(selectAllPagesFromTable)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		rows.Scan(&name, &body)
+		pages = append(pages, &webAppGo.Page{Title: name, Body: body})
+	}
+	return pages, nil
+}
+
 // SavePage is for saving pages to the db
 func (db *DB) SavePage(p *webAppGo.Page) error {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -50,4 +66,16 @@ func (db *DB) PageExists(title string) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// DeletePage is for saving pages to the db
+func (db *DB) DeletePage(title string) error {
+	if strings.Contains(title, " ") {
+		title = strings.Replace(title, " ", "_", -1)
+	}
+	_, err := db.Exec(deletePageFromTable, title)
+	if err != nil {
+		return err
+	}
+	return nil
 }

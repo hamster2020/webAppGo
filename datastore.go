@@ -12,6 +12,7 @@ type Datastore interface {
 	SavePage(*Page) error
 	LoadPage(string) (*Page, error)
 	PageExists(string) (bool, error)
+	DeletePage(string) error
 
 	// users.go db methods
 	SaveUser(*User) error

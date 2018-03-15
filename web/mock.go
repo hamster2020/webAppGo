@@ -21,6 +21,10 @@ func (mdb *mockDB) SavePage(p *webAppGo.Page) error {
 	return nil
 }
 
+func (mdb *mockDB) DeletePage(p string) error {
+	return nil
+}
+
 func (mdb *mockDB) LoadPage(p string) (*webAppGo.Page, error) {
 	return &webAppGo.Page{Title: p, Body: []byte("testing testing 123")}, nil
 }
@@ -35,6 +39,10 @@ func (mc *mockCache) SaveToCache(*webAppGo.Page) error {
 
 func (mc *mockCache) LoadPageFromCache(title string) (*webAppGo.Page, error) {
 	return &webAppGo.Page{Title: title, Body: []byte("testing testing 123")}, nil
+}
+
+func (mc *mockCache) DeletePageFromCache(title string) error {
+	return nil
 }
 
 // Datastore users methods

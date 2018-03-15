@@ -2,14 +2,11 @@ package web
 
 import (
 	"html/template"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
 
 	"github.com/hamster2020/webAppGo"
-	"github.com/hamster2020/webAppGo/cache"
-	"github.com/hamster2020/webAppGo/sqlite"
 )
 
 // Env stores environemnt and application scope data to be easily passed to http handlers
@@ -22,27 +19,6 @@ type Env struct {
 }
 
 var validPath = regexp.MustCompile(`^/(edit|save|view|download)/([:\w+:]+[[.]?[:\w+:]+]?)$`)
-
-func InitEnv(logPath, cachePath, templatePath, filePath string) *Env {
-	log.SetFlags(log.Ldate | log.Lmicroseconds)
-	logger := webAppGo.Logger{Level: 1, FilePath: logPath} //../../logs/"}
-	logger.SetSource()
-
-	c := cache.NewCache(cachePath)
-
-	db, err := sqlite.NewDB(sqlite.DataSourceDriver, sqlite.DataSourceName)
-	if err != nil {
-		panic(err)
-	}
-
-	return &Env{
-		DB:           db,
-		Cache:        c,
-		Log:          logger,
-		TemplatePath: templatePath,
-		FilePath:     filePath,
-	}
-}
 
 // IndexPage returns to the client the index.html page
 func (env *Env) IndexPage(res http.ResponseWriter, req *http.Request) {

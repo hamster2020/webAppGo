@@ -1,7 +1,6 @@
 package sqlite
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -20,7 +19,6 @@ func (db *DB) AllPages() ([]*webAppGo.Page, error) {
 	}
 	for rows.Next() {
 		rows.Scan(&name, &body)
-		fmt.Println(name, body)
 		pages = append(pages, &webAppGo.Page{Title: name, Body: body})
 	}
 	return pages, nil
@@ -68,4 +66,16 @@ func (db *DB) PageExists(title string) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// DeletePage is for saving pages to the db
+func (db *DB) DeletePage(title string) error {
+	if strings.Contains(title, " ") {
+		title = strings.Replace(title, " ", "_", -1)
+	}
+	_, err := db.Exec(deletePageFromTable, title)
+	if err != nil {
+		return err
+	}
+	return nil
 }
