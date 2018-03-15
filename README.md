@@ -13,7 +13,7 @@
   * sessions handled with secure cookies
   * `sessionid`, `userid`, and `timestamp` stored in `session` db table
 * **Pages**
-  * allows **logged in** client to create, read, and update `pages`
+  * allows logged in client to create, read, and update `pages`
   * a `page` is saved and retrieved from both the `pages` db table and a local cache
   * `title`, `body`, and `timestamp` stored in `pages` db table
 * **Files**
