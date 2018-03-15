@@ -35,6 +35,6 @@
 * **Environment Defined Variables:**
   The environment variable is a struct which contains the different interfaces such as the `Datastore` and `Cachestore`, as well as other environment-wide variables such as the file path and logging settings.
 * **Custom Logging:**
-  A custom logger was built around Go's `log` package, but also includes leveled logging, detailed prefixing, and simple controls to specify the path to vase to a file or merely print to the console.
+  A custom logger was built around Go's `log` package, but also includes leveled logging, detailed prefixing, and simple controls to specify the path to save to a file or merely print to the console.
 * **Testing:**
   Go's OOTB testing was implemented in both the `web` and `api` packages in this project. Since the db and cache were decoupled through *dependency injection*, testing in these sub-packages were possible with completely different sources, created just for testing, called `mockDB` and `mockCache`.
