@@ -8,16 +8,16 @@ import (
 	"github.com/hamster2020/webAppGo/api"
 	"github.com/hamster2020/webAppGo/cache"
 	postgres "github.com/hamster2020/webAppGo/postgres"
-	sqlite "github.com/hamster2020/webAppGo/sqlite"
+	"github.com/hamster2020/webAppGo/sqlite"
 	"github.com/hamster2020/webAppGo/web"
 )
 
 func main() {
 	// set up and initialize environment variables
-	// dbType: choose either "sqlite" or "postgres"
+	// dbType: choose either "sqlite3" or "postgres"
 	// dbPath: choose either "../../sqlite/db.sqlite3" or "postgres://hamster2020:password@localhost/webappgo?sslmode=disable"
 	// logPath: provide "" to write log to console, otherwise provide the file path
-	dbType := "sqlite"
+	dbType := "sqlite3"
 	dbPath := "../../sqlite/db.sqlite3"
 	logPath := ""
 	cachePath := "../../cache/"
@@ -44,7 +44,7 @@ func InitWebEnv(dbType, dbPath, logPath, cachePath, templatePath, filePath strin
 
 	c := cache.NewCache(cachePath)
 	switch dbType {
-	case "sqlite":
+	case "sqlite3":
 		db, err = sqlite.NewDB(dbType, dbPath)
 		if err != nil {
 			panic(err)
@@ -77,7 +77,7 @@ func InitApiEnv(dbType, dbPath, logPath, cachePath, templatePath, filePath strin
 	c := cache.NewCache(cachePath)
 
 	switch dbType {
-	case "sqlite":
+	case "sqlite3":
 		db, err = sqlite.NewDB(dbType, dbPath)
 		if err != nil {
 			panic(err)
